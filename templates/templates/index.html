@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Online Course</title>
+<style>
+body {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    background: linear-gradient(120deg, #74ebd5, #9face6);
+    min-height: 100vh;
+}
+
+h2 {
+    text-align: center;
+    color: #333;
+}
+
+form {
+    background: #ffffff;
+    width: 320px;
+    margin: 20px auto;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
+
+input, select {
+    width: 100%;
+    padding: 10px;
+    margin: 8px 0;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+}
+
+button {
+    width: 100%;
+    padding: 10px;
+    background: #4a69bd;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 15px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #1e3799;
+}
+
+p {
+    text-align: center;
+    margin: 10px auto;
+    width: 320px;
+}
+
+p[style*="green"] {
+    background: #eaffea;
+    border: 1px solid #b6f2b6;
+    padding: 10px;
+    border-radius: 5px;
+}
+</style>
+<!-- <link rel="stylesheet" href="\static\style.css"> -->
+</head>
+<body>
+    {% if message %}
+<p style="color: green; font-weight: bold;">
+    {{ message }}
+</p>
+{% endif %}
+
+<h2>Register</h2>
+<form action="/register" method="post">
+<input name="name" placeholder="Name" required><br>
+<input name="email" placeholder="Email" required><br>
+<input name="password" placeholder="Password" required><br>
+<select name="role">
+<option value="student">Student</option>
+<option value="teacher">Teacher</option>
+</select><br>
+<button>Register</button>
+</form>
+<h2>Login</h2>
+<form action="/login" method="post">
+<input name="email" placeholder="Email"><br>
+<input name="password" placeholder="Password"><br>
+<button>Login</button>
+</form>
+</body>
+</html>
