@@ -1,0 +1,173 @@
+<!-- <!DOCTYPE html>
+<html>
+<head>
+<title>Login - Online Course</title>
+<style>
+body {margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;background:linear-gradient(120deg,#dac78b,#9face6);min-height:100vh}
+h2{text-align:center;color:#333}
+form{background:#fff;width:420px;margin:20px auto;padding:50px;border-radius:15px;box-shadow:0 10px 25px rgba(0,0,0,0.2)}
+input,select{width:100%;padding:10px;margin:8px 0;border-radius:5px;border:1px solid #ccc;font-size:14px}
+button{width:100%;padding:10px;background:#4a69bd;color:white;border:none;border-radius:5px;font-size:15px;cursor:pointer}
+button:hover{background:#1e3799}
+</style>
+</head>
+<body>
+    <h2>Login</h2>
+    <form action="/login" method="post">
+        <input name="email" placeholder="Email"><br>
+        <input name="password" placeholder="Password"><br>
+        <button>Login</button>
+    </form>
+</body>
+</html> -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Online Course</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        * { box-sizing: border-box; }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            width: 100%;
+            max-width: 400px;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+        }
+
+        h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        p.subtitle {
+            text-align: center;
+            color: #777;
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+
+        /* Flash Message Styling */
+        .alert {
+            background: #ffe5e5;
+            color: #d9534f;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 13px;
+            text-align: center;
+            margin-bottom: 20px;
+            border: 1px solid #f5c6cb;
+        }
+
+        .input-group {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .input-group i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #aaa;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 15px 12px 45px;
+            border-radius: 10px;
+            border: 2px solid #eee;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        input:focus {
+            border-color: #764ba2;
+            box-shadow: 0 0 8px rgba(118, 75, 162, 0.1);
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background: #764ba2;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.3s;
+        }
+
+        button:hover {
+            background: #5a3782;
+            transform: scale(1.02);
+        }
+
+        .footer-links {
+            text-align: center;
+            margin-top: 25px;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .footer-links a {
+            color: #764ba2;
+            text-decoration: none;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Welcome Back</h2>
+    <p class="subtitle">Please enter your details to login</p>
+
+    {% if message %}
+    <div class="alert">
+        {{ message }}
+    </div>
+    {% endif %}
+
+    <form action="/login" method="post">
+        <div class="input-group">
+            <i class="fas fa-envelope"></i>
+            <input type="email" name="email" placeholder="Email" required>
+        </div>
+        
+        <div class="input-group">
+            <i class="fas fa-lock"></i>
+            <input type="password" name="password" placeholder="Password" required>
+        </div>
+        
+        <button type="submit">Login</button>
+    </form>
+    
+    <div class="footer-links">
+        Don't have an account? <a href="/register">Sign Up</a>
+    </div>
+</div>
+
+</body>
+</html>

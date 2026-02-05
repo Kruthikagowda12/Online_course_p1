@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Upload Course Materials - {{ course.title }}</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<style>
+  :root {
+    --primary: #4f46e5;
+    --primary-hover: #4338ca;
+    --bg: #f8fafc;
+    --card: #ffffff;
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+    --border: #e2e8f0;
+    --danger: #ef4444;
+  }
+
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: var(--bg);
+    color: var(--text-main);
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  .navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: white;
+    padding: 1rem 5%;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .nav-brand {
+    font-weight: 800;
+    color: var(--primary);
+    font-size: 1.4rem;
+  }
+
+  .user-badge {
+    background: #eef2ff;
+    color: var(--primary);
+    padding: 0.4rem 1rem;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .container {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 0 1.5rem;
+  }
+
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    gap: 0.5rem;
+  }
+
+  .back-link:hover {
+    text-decoration: underline;
+  }
+
+  .form-container {
+    background: white;
+    padding: 2rem;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+
+  .form-container h1 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.8rem;
+    color: var(--text-main);
+  }
+
+  .form-container p {
+    color: var(--text-muted);
+    margin: 0 0 2rem 0;
+  }
+
+  .form-group {
+    margin-bottom: 2rem;
+  }
+
+  .form-group label {
+    display: block;
+    font-weight: 700;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    color: var(--text-main);
+    margin-bottom: 0.75rem;
+    letter-spacing: 0.05em;
+  }
+
+  textarea {
+    width: 100%;
+    padding: 1rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-size: 1rem;
+    resize: vertical;
+    min-height: 300px;
+    box-sizing: border-box;
+  }
+
+  textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+  }
+
+  .button-group {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .btn-primary {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 0.8rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 1rem;
+    flex: 1;
+  }
+
+  .btn-primary:hover {
+    background: var(--primary-hover);
+  }
+
+  .btn-secondary {
+    background: white;
+    color: var(--primary);
+    border: 2px solid var(--primary);
+    padding: 0.8rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 1rem;
+    flex: 1;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .btn-secondary:hover {
+    background: #eef2ff;
+  }
+
+  .alert {
+    background: #ecfdf5;
+    border: 1px solid #a7f3d0;
+    color: #065f46;
+    padding: 1rem;
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+  }
+
+  .help-text {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-top: 0.5rem;
+  }
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-brand">EduStream</div>
+  <div style="display: flex; align-items: center; gap: 20px;">
+    <span class="user-badge">{{ session.get('name','instructor') }}</span>
+    <a href="/logout" style="color: var(--text-muted); text-decoration: none; font-weight: 600;">Logout</a>
+  </div>
+</nav>
+
+<div class="container">
+  <a href="/teacher/{{ session.get('id') }}" class="back-link">← Back to Dashboard</a>
+
+  <div class="form-container">
+    <h1>📚 Upload Course Materials</h1>
+    <p>{{ course.title }}</p>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="alert">
+          <i class="fas fa-check-circle"></i> 
+          {% for msg in messages %}{{ msg }}{% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST" action="/course/{{ course.id }}/update-materials">
+      <div class="form-group">
+        <label for="content">Course Content & Materials</label>
+        <textarea 
+          id="content" 
+          name="content" 
+          placeholder="Add lectures, notes, PDFs, video links, assignments, resources, etc. You can use HTML or plain text. Use <h2> tags for sections, <p> for paragraphs, and <a href='link'> for resource links."
+        >{{ course.content or '' }}</textarea>
+        <p class="help-text">
+          💡 Tip: You can format your content with HTML. Example:
+          <br>&lt;h2&gt;Lecture 1: Introduction&lt;/h2&gt;
+          <br>&lt;p&gt;Content here...&lt;/p&gt;
+          <br>&lt;a href="https://example.com/pdf"&gt;Download PDF&lt;/a&gt;
+        </p>
+      </div>
+
+      <div class="button-group">
+        <button type="submit" class="btn-primary">
+          <i class="fas fa-save"></i> Save Materials
+        </button>
+        <a href="/teacher/{{ session.get('id') }}" class="btn-secondary">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+</body>
+</html>
