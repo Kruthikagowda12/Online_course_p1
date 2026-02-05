@@ -1,0 +1,73 @@
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+<style>
+  :root {
+    --primary: #6366f1;
+    --sidebar-bg: #0f172a;
+    --bg: #f8fafc;
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+    --border: #e2e8f0;
+  }
+
+  body { font-family: Inter, system-ui, -apple-system, sans-serif; margin:0; background: var(--bg); }
+  .sidebar { width:260px; background:var(--sidebar-bg); color:white; position:fixed; height:100vh; padding:2rem 1rem; }
+  .sidebar h2 { color:var(--primary); margin:0 0 1rem 0; }
+  .nav-item { display:flex; gap:12px; padding:10px 12px; color:#94a3b8; text-decoration:none; border-radius:8px; margin-bottom:6px; }
+  .nav-item.active, .nav-item:hover { background: rgba(255,255,255,0.06); color:white; }
+  .main-content { margin-left:260px; padding:2rem; }
+
+  .card { background:white; border-radius:12px; padding:1rem; border:1px solid var(--border); box-shadow:0 6px 14px rgba(2,6,23,0.03); }
+  table { width:100%; border-collapse:collapse; }
+  th, td { text-align:left; padding:12px; border-bottom:1px solid #f1f5f9; }
+  th { color:var(--text-muted); font-weight:700; font-size:0.9rem; }
+  .btn { background:var(--primary); color:white; padding:8px 12px; border-radius:8px; text-decoration:none; }
+
+  .topbar { display:flex; justify-content:flex-end; align-items:center; gap:12px; margin-bottom:1rem; }
+  .btn-logout-top { background: none; border: 1px solid rgba(15,23,42,0.06); color: #94a3b8; padding: 8px 12px; border-radius: 8px; text-decoration: none; font-weight: 700; }
+
+</style>
+
+<div class="sidebar">
+  <h2>EduStream</h2>
+  <a href="/teacher/{{ teacher_id }}" class="nav-item"><i class="fas fa-th-large"></i> Dashboard</a>
+  <a href="/teacher/{{ teacher_id }}" class="nav-item"><i class="fas fa-book"></i> My Courses</a>
+  <a href="/teacher/{{ teacher_id }}/students" class="nav-item active"><i class="fas fa-users"></i> Students</a>
+  <a href="#" class="nav-item"><i class="fas fa-cog"></i> Settings</a>
+  
+</div>
+
+<div class="main-content">
+  <div style="max-width:1100px; margin:0 auto;">
+    <div class="topbar">
+      <div style="margin-right:auto; color:var(--text-muted);">{{ session.get('name') }}</div>
+      <a href="/logout" class="btn-logout-top">Logout</a>
+    </div>
+
+    <h1 style="margin-top:0;">All Students</h1>
+    <p style="color:var(--text-muted); margin-top:4px;">Students enrolled across your courses.</p>
+
+    <div style="margin-top:1rem;" class="card">
+      {% if students %}
+      <table>
+        <thead>
+          <tr><th>Name</th><th>Email</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+          {% for s in students %}
+            <tr>
+              <td>{{ s.name }}</td>
+              <td>{{ s.email }}</td>
+              <td>
+                <a class="btn" href="/teacher/{{ teacher_id }}/student/{{ s.id }}">Open Student</a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+        <div style="padding:2rem; text-align:center; color:var(--text-muted);">No students enrolled yet.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>

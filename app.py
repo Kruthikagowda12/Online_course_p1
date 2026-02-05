@@ -3,14 +3,35 @@ from flask import Flask, request, jsonify, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask import flash
 from flask import session, redirect, url_for
+from sqlalchemy import text
+import os
+from dotenv import load_dotenv
+import json
+from werkzeug.utils import secure_filename
 
+load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = 'secret123'
-app.config['SQLALCHEMY_DATABASE_URI'] = \
-'postgresql://postgres:postgres123@localhost:5432/online_course'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
 # app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:password@localhost/online_course'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# File upload config
+UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads')
+ALLOWED_EXTENSIONS = {'pdf', 'mp4', 'avi', 'mov', 'mkv', 'txt', 'doc', 'docx', 'ppt', 'pptx', 'zip'}
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+# Custom Jinja2 filter to parse JSON
+@app.template_filter('from_json')
+def from_json(value):
+    return json.loads(value) if value else []
 
 
 db = SQLAlchemy(app)
@@ -32,6 +53,8 @@ class Course(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(100))
     description = db.Column(db.Text)
+    content = db.Column(db.Text)
+    materials = db.Column(db.Text, default='')  # JSON string of uploaded files
     teacher_id = db.Column(db.Integer)
 
 
@@ -82,10 +105,17 @@ def register():
     db.session.add(user)
     db.session.commit()
     return render_template(
-        'templates/index.html',
+        'templates/login.html',
         message='Registration successful! You can now login.'
     
     )
+@app.route("/db-test")
+def db_test():
+    row = db.session.execute(text("SELECT version()")).fetchone()
+    return str(row)
+
+
+
 
 @app.route('/login', methods=['POST'])
 def login():
@@ -146,6 +176,94 @@ def teacher_dashboard(id):
         teacher_id=id   # ✅ IMPORTANT
     )
 
+
+@app.route('/teacher/<int:id>/students')
+def teacher_students(id):
+    # Get all students enrolled in any course by this teacher
+    teacher_courses = Course.query.filter_by(teacher_id=id).all()
+    course_ids = [c.id for c in teacher_courses]
+
+    students = []
+    if course_ids:
+        enrolled = (
+            db.session.query(User)
+            .join(Enrollment, User.id == Enrollment.student_id)
+            .filter(Enrollment.course_id.in_(course_ids))
+            .all()
+        )
+
+        # dedupe by id
+        seen = set()
+        for s in enrolled:
+            if s.id not in seen:
+                seen.add(s.id)
+                students.append(s)
+
+    return render_template('templates/teacher-students.html', students=students, teacher_id=id)
+
+@app.route('/teacher/<int:teacher_id>/student/<int:student_id>')
+def teacher_student_detail(teacher_id, student_id):
+    # show a focused view of a student and the courses they are enrolled in
+    student = User.query.get_or_404(student_id)
+
+    enrolled_courses = (
+        db.session.query(Course)
+        .join(Enrollment, Course.id == Enrollment.course_id)
+        .filter(Enrollment.student_id == student_id)
+        .all()
+    )
+
+    # annotate courses with teacher relation and teacher name
+    for c in enrolled_courses:
+        c.is_teacher_course = (c.teacher_id == teacher_id)
+        teacher = User.query.get(c.teacher_id) if c.teacher_id else None
+        c.teacher_name = teacher.name if teacher else 'Unknown'
+
+    return render_template('templates/teacher-student-detail.html',
+                           student=student,
+                           enrolled_courses=enrolled_courses,
+                           teacher_id=teacher_id)
+
+
+@app.route('/course/<int:course_id>/material/delete/<int:material_index>', methods=['POST'])
+def delete_material(course_id, material_index):
+    course = Course.query.get(course_id)
+    if not course:
+        flash('Course not found')
+        return redirect(url_for('teacher_dashboard', id=session.get('id')))
+    
+    # Check if user is the teacher of this course
+    if course.teacher_id != session.get('id'):
+        flash('You do not have permission to edit this course')
+        return redirect(url_for('teacher_dashboard', id=session.get('id')))
+    
+    # Parse materials and remove the specified one
+    materials_list = []
+    if course.materials:
+        try:
+            materials_list = json.loads(course.materials)
+        except:
+            materials_list = []
+    
+    if 0 <= material_index < len(materials_list):
+        # Delete file from disk if it exists
+        material = materials_list[material_index]
+        try:
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], material['path'].split('/')[-1])
+            if os.path.exists(filepath):
+                os.remove(filepath)
+        except Exception as e:
+            print(f"Error deleting file: {e}")
+        
+        # Remove from list
+        materials_list.pop(material_index)
+        course.materials = json.dumps(materials_list)
+        db.session.commit()
+        flash('Material deleted successfully!')
+    
+    return redirect(url_for('edit_course_materials', course_id=course_id))
+
+
 @app.route('/teacher/create', methods=['POST'])
 def create_course():
     title = request.form['title']
@@ -170,6 +288,10 @@ def student_dashboard(id):
 
     # all courses (for enrollment)
     all_courses = Course.query.all()
+    # attach teacher name to each course for template display
+    for c in all_courses:
+        teacher = User.query.get(c.teacher_id) if c.teacher_id else None
+        c.teacher_name = teacher.name if teacher else 'Unknown'
 
     # courses student already enrolled in
     enrolled_courses = (
@@ -178,6 +300,11 @@ def student_dashboard(id):
         .filter(Enrollment.student_id == id)
         .all()
         )
+
+    # attach teacher name to enrolled courses as well
+    for c in enrolled_courses:
+        teacher = User.query.get(c.teacher_id) if c.teacher_id else None
+        c.teacher_name = teacher.name if teacher else 'Unknown'
 
     return render_template(
         'templates/student.html',
@@ -258,6 +385,33 @@ def update_course_materials(course_id):
         return redirect(url_for('teacher_dashboard', id=session.get('id')))
     
     course.content = request.form.get('content', '')
+    
+    # Handle file uploads
+    materials_list = []
+    if course.materials:
+        try:
+            materials_list = json.loads(course.materials)
+        except:
+            materials_list = []
+    
+    # Process uploaded files
+    if 'materials' in request.files:
+        files = request.files.getlist('materials')
+        for file in files:
+            if file and file.filename and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                # Add timestamp to avoid conflicts
+                import time
+                filename = f"{int(time.time())}_{filename}"
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                file.save(filepath)
+                materials_list.append({
+                    'name': file.filename,
+                    'path': f'uploads/{filename}',
+                    'type': 'file'
+                })
+    
+    course.materials = json.dumps(materials_list)
     db.session.commit()
     flash('Course materials updated successfully!')
     return redirect(url_for('teacher_dashboard', id=session.get('id')))
@@ -287,9 +441,18 @@ def view_course(course_id):
     # 2. Get the course details from the database
     course = Course.query.get_or_404(course_id)
     
+    # Parse materials JSON
+    materials = []
+    if course.materials:
+        try:
+            materials = json.loads(course.materials)
+        except:
+            materials = []
+    
     # 3. Show a new page called course_detail.html
     return render_template('templates/course-view.html', 
                            course=course,
+                           materials=materials,
                            student_id=session.get('id'))
 @app.route('/logout')
 def logout():

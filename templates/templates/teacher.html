@@ -13,12 +13,14 @@
     --danger: #ef4444;
   }
 
+  * { box-sizing: border-box; }
+
   body {
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     background: radial-gradient(at top left, #e2e8f0, #f8fafc);
     color: var(--text-main);
     margin: 0;
-    display: flex; /* Required for Sidebar layout */
+    display: flex;
     min-height: 100vh;
   }
 
@@ -33,6 +35,7 @@
     flex-direction: column;
     padding: 2rem 1rem;
     box-shadow: 4px 0 10px rgba(0,0,0,0.1);
+    z-index: 1000;
   }
 
   .sidebar h2 {
@@ -72,7 +75,7 @@
 
   /* --- MAIN CONTENT AREA --- */
   .main-content {
-    margin-left: 260px; /* Same as sidebar width */
+    margin-left: 260px;
     flex: 1;
     padding: 2rem 3rem;
   }
@@ -82,6 +85,8 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
   }
 
   /* --- STATS CARDS --- */
@@ -166,19 +171,80 @@
 
   .btn-delete:hover { background: #fecaca; color: white; }
 
+  .topbar { display:flex; justify-content:flex-end; align-items:center; gap:12px; margin-bottom:1rem; }
+  .btn-logout-top { background: none; border: 1px solid rgba(15,23,42,0.06); color: var(--text-muted); padding: 8px 12px; border-radius: 8px; text-decoration: none; font-weight: 700; cursor: pointer; }
+
+  .menu-toggle { display: none; background: none; border: none; color: var(--primary); font-size: 1.5rem; cursor: pointer; }
+
+  /* Mobile responsive */
+  @media (max-width: 768px) {
+    body { flex-direction: column; }
+    
+    .sidebar {
+      position: fixed;
+      left: 0;
+      right: 0;
+      top: 0;
+      width: 100%;
+      height: auto;
+      max-height: 240px;
+      overflow-y: auto;
+      flex-direction: row;
+      padding: 0.75rem;
+      align-items: center;
+      justify-content: space-between;
+      display: none;
+    }
+    
+    .sidebar.active { display: flex; }
+    .sidebar h2 { margin: 0; margin-right: auto; font-size: 1rem; padding: 0; }
+    .nav-item { margin-bottom: 0; padding: 8px 10px; font-size: 0.9rem; }
+    
+    .main-content {
+      margin-left: 0;
+      margin-top: 50px;
+      padding: 1rem;
+    }
+    
+    .menu-toggle { display: block; }
+    
+    .header-section { flex-direction: column; align-items: stretch; }
+    .btn-create { width: 100%; }
+    .course-grid { grid-template-columns: 1fr; }
+    .stats-grid { grid-template-columns: 1fr; }
+    
+    h1 { font-size: 1.5rem; }
+    h2 { font-size: 1.2rem; }
+  }
+
+  @media (max-width: 480px) {
+    .main-content { padding: 0.75rem; }
+    .course-card { padding: 1rem; }
+  }
+
+
+  .topbar { display:flex; justify-content:flex-end; align-items:center; gap:12px; margin-bottom:1rem; }
+  .btn-logout-top { background: none; border: 1px solid rgba(15,23,42,0.06); color: var(--text-muted); padding: 8px 12px; border-radius: 8px; text-decoration: none; font-weight: 700; }
+
 </style>
 
-<div class="sidebar">
+<div class="sidebar" id="sidebar">
   <h2>EduStream</h2>
   <a href="#" class="nav-item active"><i class="fas fa-th-large"></i> Dashboard</a>
-  <a href="#" class="nav-item"><i class="fas fa-book"></i> My Courses</a>
-  <a href="#" class="nav-item"><i class="fas fa-users"></i> Students</a>
-  <a href="#" class="nav-item"><i class="fas fa-cog"></i> Settings</a>
-  
-  <a href="/logout" class="nav-item logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a>
+  <!-- <a href="#" class="nav-item"><i class="fas fa-book"></i> My Courses</a> -->
+  <a href="/teacher/{{ teacher_id }}/students" class="nav-item"><i class="fas fa-users"></i> Students</a>
+  <a href="/logout" class="btn-logout-top">Logout</a>
+  <!-- <a href="#" class="nav-item"><i class="fas fa-cog"></i> Settings</a> -->
 </div>
 
 <div class="main-content">
+  <button class="menu-toggle" id="menuToggle" onclick="toggleMenu()">
+    <i class="fas fa-bars"></i>
+  </button>
+  <div class="topbar">
+    <div style="color:var(--text-muted); margin-right:12px;">{{ session.get('name') }}</div>
+    <a href="/logout" class="btn-logout-top">Logout</a>
+  </div>
   <div class="header-section">
     <div>
       <h1 style="margin:0;">Instructor Panel</h1>
@@ -246,3 +312,10 @@
     </form>
   </div>
 </div>
+
+<script>
+function toggleMenu() {
+  const sidebar = document.getElementById('sidebar');
+  sidebar.classList.toggle('active');
+}
+</script>

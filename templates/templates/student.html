@@ -1,543 +1,231 @@
-<!-- <!-- 
-
-<h2>Student Dashboard</h2>
-{% for c in courses %}
-<form method="post" action="/enroll">
-{{c.title}} - {{c.description}}
-<input type="hidden" name="course_id" value="{{c.id}}">
-<input type="hidden" name="student_id" value="{{student_id}}">
-<button>Enroll</button>
-</form>
-{% endfor %}
-
-<h2>My Enrolled Courses</h2>
-
-{% if courses %}
-  <ul>
-    {% for course in courses %}
-      <li>
-        <b>{{ course.title }}</b><br>
-        {{ course.description }}
-      </li>
-    {% endfor %}
-  </ul>
-{% else %}
-  <p>You are not enrolled in any course.</p>
-{% endif %}
-
-<h2>Available Courses</h2>
-
-{% for course in all_courses %}
-  <div>
-    <b>{{ course.title }}</b> - {{ course.description }}
-
-    <form method="POST" action="/enroll">
-      <input type="hidden" name="student_id" value="{{ student_id }}">
-      <input type="hidden" name="course_id" value="{{ course.id }}">
-      <button type="submit">Enroll</button>
-    </form>
-  </div>
-{% endfor %}
-
-<h2>My Enrolled Courses</h2>
-
-{% for course in enrolled_courses %}
-  <p>{{ course.title }}</p>
-{% else %}
-  <p>No courses enrolled yet</p>
-{% endfor %}
-
-
-
-
-{% with messages = get_flashed_messages() %}
-  {% for msg in messages %}
-    <p style="color: green;">{{ msg }}</p>
-  {% endfor %}
-{% endwith %}
- -->
-<!-- <style>
-  :root {
-    --primary: #2563eb;
-    --success: #10b981;
-    --bg: #f1f5f9;
-    --card: #ffffff;
-    --text-main: #1e293b;
-    --text-muted: #64748b;
-  }
-
-  body {
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    background-color: var(--bg);
-    color: var(--text-main);
-    padding: 2rem;
-    margin: 0;
-  }
-
-  .container {
-    max-width: 1100px;
-    margin: 0 auto;
-  }
-
-  h2 {
-    font-size: 1.75rem;
-    margin: 2rem 0 1.5rem 0;
-    padding-bottom: 0.5rem;
-    border-bottom: 2px solid #e2e8f0;
-    color: var(--text-main);
-  }
-
- 
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1.5rem;
-  }
-
-  @media (max-width: 768px) {
-    .grid { grid-template-columns: 1fr; }
-  }
-
- 
-  .card {
-    background: var(--card);
-    border-radius: 12px;
-    padding: 1.5rem;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-    border: 1px solid #e2e8f0;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-  }
-
-  .card b {
-    font-size: 1.25rem;
-    color: var(--primary);
-    display: block;
-    margin-bottom: 0.5rem;
-  }
-
-  .card p {
-    color: var(--text-muted);
-    font-size: 0.95rem;
-    margin-bottom: 1.5rem;
-  }
-
- 
-  .enrolled-list {
-    list-style: none;
-    padding: 0;
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1rem;
-  }
-
-  .enrolled-item {
-    background: #ffffff;
-    padding: 1rem;
-    border-radius: 8px;
-    border-left: 4px solid var(--success);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-  }
-
- 
-  button {
-    background-color: var(--primary);
-    color: white;
-    border: none;
-    padding: 0.75rem 1.25rem;
-    border-radius: 6px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.2s;
-    width: 100%;
-  }
-
-  button:hover {
-    background-color: #1d4ed8;
-  }
-
-  .alert {
-    padding: 1rem;
-    background: #dcfce7;
-    color: #166534;
-    border-radius: 8px;
-    margin-bottom: 1rem;
-    border: 1px solid #bbf7d0;
-  }
-
-
-  .navbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: white;
-    padding: 1rem 2rem;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    margin-bottom: 2rem;
-    border-radius: 8px;
-  }
-
-  .nav-brand {
-    font-weight: 700;
-    color: var(--primary);
-    font-size: 1.2rem;
-  }
-
-  .btn-logout {
-    background-color: #f1f5f9;
-    color: #475569 !important;
-    border: 1px solid #cbd5e1 !important;
-    text-decoration: none;
-    padding: 0.5rem 1rem;
-    border-radius: 6px;
-    font-size: 0.9rem;
-    font-weight: 600;
-    transition: all 0.2s;
-  }
-
-  .btn-logout:hover {
-    background-color: var(--danger);
-    color: white !important;
-    border-color: var(--danger) !important;
-  }
-
-  .btn-unenroll {
-    background: #f1f5f9;
-    color: #64748b;
-    border: 1px solid #cbd5e1;
-    margin-top: 10px;
-    font-size: 0.8rem;
-    padding: 0.5rem;
-}
-
-.btn-unenroll:hover {
-    background: #fee2e2;
-    color: #ef4444;
-    border-color: #fecaca;
-}
-</style>
-<nav class="navbar">
-  <div class="nav-brand">Dashboard
-    <span style="font-weight: 400; font-size: 0.9rem; color: var(--text-muted); margin-left: 10px;">
-     | Welcome, {{ session.get('name','Guest') }} ({{ session.get('role','Unknown') }})
-    </span>
-  </div>
-  <a href="/logout" class="btn-logout">Log Out</a>
-</nav>
-<div class="container">
-  <h2>Student Dashboard</h2>
-
-  {% with messages = get_flashed_messages() %}
-    {% for msg in messages %}
-      <div class="alert">{{ msg }}</div>
-    {% endfor %}
-  {% endwith %}
-
-  <h2>Available Courses</h2>
-  <div class="grid">
-    {% for course in all_courses %}
-      <div class="card">
-        <div>
-          <b>{{ course.title }}</b>
-          <p>{{ course.description }}</p>
-        </div>
-
-        <form method="POST" action="/enroll">
-          <input type="hidden" name="student_id" value="{{ student_id }}">
-          <input type="hidden" name="course_id" value="{{ course.id }}">
-          <button type="submit">Enroll Now</button>
-        </form>
-      </div>
-    {% endfor %}
-  </div>-->
-
-  <!-- <h2>My Enrolled Courses</h2>
-  <div class="enrolled-list">
-    {% for course in enrolled_courses %}
-      <div class="enrolled-item">
-        <strong>{{ course.title }}</strong>
-      </div>
-    {% else %}
-      <p style="color: var(--text-muted);">No courses enrolled yet</p>
-    {% endfor %}
-  </div>
-</div> -->
-<!--
-<h2>My Enrolled Courses</h2>
-<div class="enrolled-list">
-  {% for course in enrolled_courses %}
-    <div class="enrolled-item">
-      <strong>{{ course.title }}</strong>
-      
-      <form method="POST" action="/unenroll" onsubmit="return confirm('Are you sure you want to un-enroll?');">
-        <input type="hidden" name="student_id" value="{{ student_id }}">
-        <input type="hidden" name="course_id" value="{{ course.id }}">
-        <button type="submit" class="btn-unenroll">Un-enroll</button>
-      </form>
-    </div>
-  {% else %}
-    <p style="color: var(--text-muted);">No courses enrolled yet</p>
-  {% endfor %}
-</div> -->
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Student Dashboard - EduStream</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
 <style>
   :root {
-    --primary: #4f46e5; /* Modern Indigo */
-    --primary-hover: #4338ca;
-    --success: #10b981;
-    --danger: #ef4444;
+    --primary: #6366f1;
+    --primary-dark: #4f46e5;
+    --sidebar-bg: #0f172a;
     --bg: #f8fafc;
-    --card: #ffffff;
+    --card-bg: #ffffff;
     --text-main: #0f172a;
     --text-muted: #64748b;
+    --success: #10b981;
+    --danger: #ef4444;
     --border: #e2e8f0;
   }
 
   body {
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    background-color: var(--bg);
+    background: radial-gradient(at top left, #eef2ff, #f8fafc);
     color: var(--text-main);
     margin: 0;
-    line-height: 1.5;
-  }
-
-  /* NAVBAR UPGRADE */
-  .navbar {
+    min-height: 100vh;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: white;
-    padding: 1rem 5%;
-    border-bottom: 1px solid var(--border);
-    position: sticky;
-    top: 0;
-    z-index: 100;
   }
 
-  .nav-brand {
-    font-weight: 800;
-    color: var(--primary);
-    font-size: 1.4rem;
-    letter-spacing: -0.025em;
-  }
-
-  .user-badge {
-    background: #eef2ff;
-    color: var(--primary);
-    padding: 0.4rem 1rem;
-    border-radius: 999px;
-    font-size: 0.85rem;
-    font-weight: 600;
-  }
-
-  .container {
-    max-width: 1200px;
-    margin: 2rem auto;
-    padding: 0 1.5rem;
-  }
-
-  /* HERO SECTION */
-  .hero {
-    margin-bottom: 3rem;
-  }
-
-  .hero h1 {
-    font-size: 2rem;
-    font-weight: 800;
-    margin-bottom: 0.5rem;
-    color: var(--text-main);
-  }
-
-  /* GRID SYSTEM */
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 2rem;
-    margin-bottom: 3rem;
-  }
-
-  /* CARD UPGRADE */
-  .card {
-    background: var(--card);
-    border-radius: 16px;
-    padding: 1.75rem;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 10px 15px -3px rgba(0,0,0,0.05);
-    border: 1px solid var(--border);
-    transition: all 0.3s ease;
+  /* Sidebar */
+  .sidebar {
+    width: 260px;
+    background: var(--sidebar-bg);
+    color: white;
+    height: 100vh;
+    position: fixed;
     display: flex;
     flex-direction: column;
+    padding: 2rem 1rem;
+    box-shadow: 4px 0 10px rgba(0,0,0,0.08);
+    z-index: 1000;
   }
 
-  .card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+  .sidebar h2 { font-size: 1.5rem; font-weight: 800; color: var(--primary); margin-bottom: 1.25rem; }
+  .nav-item { padding: 10px 14px; color: #94a3b8; text-decoration: none; border-radius: 10px; margin-bottom: 0.5rem; display:flex; gap:12px; align-items:center; }
+  .nav-item:hover, .nav-item.active { background: rgba(255,255,255,0.06); color: white; }
+  .nav-item.active { background: var(--primary); color: white; }
+  .logout-btn { margin-top: auto; color: #fecaca; }
+
+  /* Main content shifted to accommodate sidebar */
+  .main-content { margin-left: 260px; flex: 1; padding: 2.25rem 3rem; }
+
+  .topbar { display:flex; justify-content:flex-end; align-items:center; gap:12px; margin-bottom:1rem; }
+  .btn-logout-top { background: none; border: 1px solid rgba(15,23,42,0.06); color: var(--text-muted); padding: 8px 12px; border-radius: 8px; text-decoration: none; font-weight: 700; }
+  
+  /* Mobile menu button */
+  .menu-toggle { display: none; background: none; border: none; color: var(--primary); font-size: 1.5rem; cursor: pointer; }
+
+  /* Mobile responsive */
+  @media (max-width: 768px) {
+    body { flex-direction: column; }
+    
+    .sidebar {
+      position: fixed;
+      left: 0;
+      width: 100%;
+      height: auto;
+      max-height: 240px;
+      overflow-y: auto;
+      flex-direction: row;
+      padding: 1rem;
+      align-items: center;
+      justify-content: space-between;
+      display: none;
+    }
+    
+    .sidebar.active { display: flex; }
+    .sidebar h2 { margin-bottom: 0; margin-right: auto; font-size: 1.2rem; }
+    
+    .main-content {
+      margin-left: 0;
+      margin-top: 60px;
+      padding: 1rem;
+    }
+    
+    .menu-toggle { display: block; }
+    
+    .topbar { flex-direction: column; align-items: flex-start; }
+    .grid { grid-template-columns: 1fr !important; }
+    .enrolled-grid { grid-template-columns: 1fr !important; }
   }
 
-  .card-tag {
-    font-size: 0.7rem;
-    text-transform: uppercase;
-    font-weight: 700;
-    color: var(--primary);
-    margin-bottom: 0.75rem;
-    letter-spacing: 0.05em;
+  @media (max-width: 480px) {
+    .main-content { padding: 0.75rem; }
+    .container { padding: 0 !important; }
   }
 
-  .card b {
-    font-size: 1.3rem;
-    margin-bottom: 0.75rem;
-    display: block;
-  }
+  .container { max-width: 1200px; margin: 0 auto; }
+  .hero h1 { font-size: 2rem; margin: 0 0 0.25rem; font-weight: 800; }
+  .hero p { color: var(--text-muted); margin: 0 0 1rem; }
 
-  .card p {
-    color: var(--text-muted);
-    font-size: 0.95rem;
-    flex-grow: 1;
-    margin-bottom: 1.5rem;
-  }
+  .section-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; }
 
-  /* ENROLLED SECTION */
-  .section-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 1.5rem;
-  }
+  .grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(300px,1fr)); gap: 1.5rem; }
 
-  .enrolled-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 4rem;
-  }
-
-  .enrolled-item {
-    background: white;
+  .card {
+    background: var(--card-bg);
+    border-radius: 12px;
     padding: 1.25rem;
-    border-radius: 12px;
+    box-shadow: 0 6px 12px rgba(2,6,23,0.04);
     border: 1px solid var(--border);
-    border-left: 5px solid var(--success);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    transition: 0.2s;
+    display:flex; flex-direction:column; justify-content:space-between;
   }
 
-  .enrolled-item:hover { background: #fdfdfd; }
+  .card b { color: var(--primary); display:block; margin-bottom:0.5rem; }
+  .card p { color: var(--text-muted); margin:0 0 1rem 0; }
 
-  /* BUTTONS */
-  .btn-primary {
-    background: var(--primary);
-    color: white;
-    border: none;
-    padding: 0.8rem;
-    border-radius: 8px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: 0.2s;
-  }
+  .enrolled-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap:1rem; margin-bottom:2rem; }
+  .enrolled-item { background:white; padding:1rem; border-radius:10px; border:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
 
-  .btn-primary:hover { background: var(--primary-hover); }
+  .btn-primary { background: var(--primary); color:white; border:none; padding:0.7rem; border-radius:8px; font-weight:700; cursor:pointer; }
+  .btn-unenroll { background:#fff1f2; color:var(--danger); border:1px solid #fecaca; padding:0.45rem 0.6rem; border-radius:6px; font-weight:700; }
 
-  .btn-unenroll {
-    background: #fff1f2;
-    color: var(--danger);
-    border: 1px solid #fecaca;
-    padding: 0.5rem 0.8rem;
-    border-radius: 6px;
-    font-size: 0.75rem;
-    font-weight: 700;
-    cursor: pointer;
-  }
+  .alert { background:#ecfdf5; border:1px solid #a7f3d0; color:#065f46; padding:0.9rem; border-radius:10px; margin-bottom:1rem; }
 
-  .btn-unenroll:hover { background: var(--danger); color: white; }
-
-  .btn-logout {
-    color: var(--text-muted);
-    text-decoration: none;
-    font-weight: 600;
-    font-size: 0.9rem;
-  }
-
-  .btn-logout:hover { color: var(--danger); }
-
-  .alert {
-    background: #ecfdf5;
-    border: 1px solid #a7f3d0;
-    color: #065f46;
-    padding: 1rem;
-    border-radius: 12px;
-    margin-bottom: 2rem;
+  @media (max-width: 900px) {
+    .sidebar { position: relative; width: 100%; height: auto; flex-direction: row; padding: 0.75rem 1rem; gap: 8px; }
+    .sidebar h2 { display:none; }
+    .main-content { margin-left: 0; padding: 1rem; }
   }
 </style>
 
-<nav class="navbar">
-  <div class="nav-brand">EduStream</div>
-  <div style="display: flex; align-items: center; gap: 20px;">
-    <span class="user-badge">
-      <i class="fas fa-user-circle"></i> {{ session.get('name','guest') }} ({{ session.get('role','Unknown') }})
-    </span>
-    <a href="/logout" class="btn-logout">Logout</a>
-  </div>
-</nav>
+<div class="sidebar">
+  <h2>EduStream</h2>
+  <a href="#" class="nav-item active"><i class="fas fa-th-large"></i> Dashboard</a>
+  <a href="#" class="nav-item"><i class="fas fa-book"></i> My Courses</a>
+   <a href="/logout" class="btn-logout-top">Logout</a>
+  <!-- <a href="#" class="nav-item"><i class="fas fa-user-graduate"></i> Enrollments</a> -->
+  <!-- <a href="#" class="nav-item"><i class="fas fa-cog"></i> Settings</a> -->
+  
+</div>
 
-<div class="container">
-  <div class="hero">
-    <h1>Welcome back, {{ session.get('name','Student') }}! 👋</h1>
-    <p style="color: var(--text-muted)">Here’s what’s happening with your courses today.</p>
-  </div>
+<div class="main-content">
+  <div class="container">
+    <div class="topbar">
+      <div style="color:var(--text-muted); margin-right:auto;">Welcome, {{ session.get('name','Student') }}</div>
+      <a href="/logout" class="btn-logout-top">Logout</a>
+    </div>
 
-  {% with messages = get_flashed_messages() %}
-    {% for msg in messages %}
-      <div class="alert"><i class="fas fa-check-circle"></i> {{ msg }}</div>
-    {% endfor %}
-  {% endwith %}
+    <div class="hero">
+      <h1>Welcome back, {{ session.get('name','Student') }}! 👋</h1>
+      <p>Here’s what’s happening with your courses today.</p>
+    </div>
 
-  <div class="section-header">
-    <h2 style="margin:0">Your Learning Journey</h2>
-    <span style="color: var(--text-muted); font-size: 0.9rem;">{{ enrolled_courses|length }} Courses Enrolled</span>
-  </div>
+    {% with messages = get_flashed_messages() %}
+      {% for msg in messages %}
+        <div class="alert"><i class="fas fa-check-circle"></i> {{ msg }}</div>
+      {% endfor %}
+    {% endwith %}
 
-  <div class="enrolled-grid">
-    {% for course in enrolled_courses %}
-      <div class="enrolled-item">
-        <div>
-          <strong style="display:block">{{ course.title }} by {{ course.teacher_name }}</strong>
-          <span style="font-size: 0.8rem; color: var(--success)">● Active</span>
+    <div class="section-header">
+      <h2 style="margin:0">Your Learning Journey</h2>
+      <span style="color: var(--text-muted); font-size: 0.95rem;">{{ enrolled_courses|length }} Courses Enrolled</span>
+    </div>
+
+    <div class="enrolled-grid">
+      {% for course in enrolled_courses %}
+        <div class="enrolled-item">
+          <div>
+            <strong style="display:block">{{ course.title }} by {{ course.teacher_name }}</strong>
+            <span style="font-size:0.85rem; color:var(--success)">● Active</span>
+          </div>
+
+          <div style="display:flex; gap:0.5rem; flex-direction:column; align-items:flex-end;">
+            <a href="/course/{{ course.id }}" class="btn-primary" style="text-decoration:none; display:inline-block; text-align:center; padding:0.45rem 0.6rem;">Go-To-Course</a>
+            <form method="POST" action="/unenroll" onsubmit="return confirm('Are you sure?');">
+              <input type="hidden" name="student_id" value="{{ student_id }}">
+              <input type="hidden" name="course_id" value="{{ course.id }}">
+              <button type="submit" class="btn-unenroll">Drop Course</button>
+            </form>
+          </div>
         </div>
-        
-        <div style="display: flex; gap: 0.5rem; flex-direction: column; width: auto;">
-          <a href="/course/{{ course.id }}" style="background: var(--primary); color: white; border: none; padding: 0.5rem 0.8rem; border-radius: 6px; font-size: 0.75rem; font-weight: 700; cursor: pointer; text-decoration: none; text-align: center;">View Course</a>
-          
-          <form method="POST" action="/unenroll" onsubmit="return confirm('Are you sure?');">
+      {% else %}
+        <div style="grid-column:1/-1; text-align:center; color:var(--text-muted); padding:1.5rem; border-radius:10px; border:1px dashed var(--border); background:#fff;">
+          No courses enrolled yet. Explore the catalog below!
+        </div>
+      {% endfor %}
+    </div>
+
+    <h2 style="margin-bottom:1rem">Browse Catalog</h2>
+    <div class="grid">
+      {% for course in all_courses %}
+        <div class="card">
+          <div>
+            <span style="font-size:0.75rem; text-transform:uppercase; font-weight:700; color:var(--primary);">Course</span>
+            <b>{{ course.title }}</b>
+            <p>{{ course.description }}</p>
+          </div>
+
+          <form method="POST" action="/enroll">
             <input type="hidden" name="student_id" value="{{ student_id }}">
             <input type="hidden" name="course_id" value="{{ course.id }}">
-            <button type="submit" class="btn-unenroll">Drop Course</button>
+            <button type="submit" class="btn-primary" style="width:100%;">Enroll Now</button>
           </form>
         </div>
-      </div>
-    {% else %}
-      <div style="grid-column: 1/-1; background: #f1f5f9; padding: 2rem; border-radius: 12px; text-align: center; color: var(--text-muted); border: 2px dashed #cbd5e1;">
-        No courses enrolled yet. Explore the catalog below!
-      </div>
-    {% endfor %}
-  </div>
+      {% endfor %}
+    </div>
 
-  <h2 style="margin-bottom: 1.5rem">Browse Catalog</h2>
-  <div class="grid">
-    {% for course in all_courses %}
-      <div class="card">
-        <span class="card-tag">Course</span>
-        <b>{{ course.title }}</b>
-        <p>{{ course.description }}</p>
-
-        <form method="POST" action="/enroll">
-          <input type="hidden" name="student_id" value="{{ student_id }}">
-          <input type="hidden" name="course_id" value="{{ course.id }}">
-          <button type="submit" class="btn-primary" style="width: 100%;">Enroll Now</button>
-        </form>
-      </div>
-    {% endfor %}
   </div>
 </div>
+<script>
+function toggleMenu() {
+  const sidebar = document.getElementById('sidebar');
+  sidebar.classList.toggle('active');
+}
+
+// Close menu when clicking on a nav item
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    const sidebar = document.getElementById('sidebar');
+    if (window.innerWidth <= 768) {
+      sidebar.classList.remove('active');
+    }
+  });
+});
+</script>
+
+</body>
+</html>

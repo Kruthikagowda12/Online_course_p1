@@ -1,0 +1,50 @@
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+<style>
+  :root { --primary:#6366f1; --bg:#f8fafc; --text-muted:#64748b; --border:#e2e8f0; }
+  body{font-family:Inter,system-ui,-apple-system,sans-serif;margin:0;background:var(--bg)}
+  .sidebar{width:260px;position:fixed;height:100vh;padding:2rem 1rem;background:#0f172a;color:#fff}
+  .main-content{margin-left:260px;padding:2rem}
+  .card{background:#fff;border-radius:12px;padding:1rem;border:1px solid var(--border)}
+  .list { list-style:none;padding:0;margin:0 }
+  .list-item{padding:12px;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center}
+  .badge{background:#eef2ff;color:var(--primary);padding:4px 8px;border-radius:8px;font-weight:700}
+  .back{display:inline-block;margin-bottom:12px;color:var(--text-muted);text-decoration:none}
+</style>
+
+<div class="sidebar">
+  <h2 style="color:var(--primary);margin:0 0 1rem 0">EduStream</h2>
+</div>
+
+<div class="main-content">
+  <div style="max-width:1000px;margin:0 auto">
+    <a class="back" href="/teacher/{{ teacher_id }}/students">← Back to Students</a>
+    <h1 style="margin-top:0">{{ student.name }}</h1>
+    <p style="color:var(--text-muted)">Email: {{ student.email }}</p>
+
+    <div style="margin-top:1rem" class="card">
+      <h3 style="margin:0 0 8px 0">Enrolled Courses</h3>
+      {% if enrolled_courses %}
+        <ul class="list">
+          {% for c in enrolled_courses %}
+            <li class="list-item">
+              <div>
+                <strong>{{ c.title }}</strong>
+                <div style="color:var(--text-muted);font-size:0.9rem">{{ c.description }}</div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+                <span class="badge">Instructor: {{ c.teacher_name }}</span>
+                {% if c.is_teacher_course %}
+                  <span style="background:#ecfdf5;border-radius:8px;padding:6px 8px;color:#065f46;border:1px solid #a7f3d0;font-weight:700">Enrolled in your course</span>
+                {% endif %}
+                <a href="/course/{{ c.id }}" style="text-decoration:none;margin-top:6px;background:var(--primary);color:#fff;padding:6px 10px;border-radius:8px">Open Course</a>
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div style="color:var(--text-muted);padding:1rem">This student is not enrolled in any course yet.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>

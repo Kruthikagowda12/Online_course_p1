@@ -173,6 +173,40 @@
     color: var(--text-muted);
     margin-top: 0.5rem;
   }
+
+  .materials-list {
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 1rem;
+    margin-top: 1rem;
+    border: 1px solid var(--border);
+  }
+
+  .material-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    background: white;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    border: 1px solid var(--border);
+  }
+
+  .btn-danger {
+    background: #ef4444;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.85rem;
+  }
+
+  .btn-danger:hover {
+    background: #dc2626;
+  }
 </style>
 </head>
 <body>
@@ -201,7 +235,7 @@
       {% endif %}
     {% endwith %}
 
-    <form method="POST" action="/course/{{ course.id }}/update-materials">
+    <form method="POST" action="/course/{{ course.id }}/update-materials" enctype="multipart/form-data">
       <div class="form-group">
         <label for="content">Course Content & Materials</label>
         <textarea 
@@ -216,6 +250,43 @@
           <br>&lt;a href="https://example.com/pdf"&gt;Download PDF&lt;/a&gt;
         </p>
       </div>
+
+      <div class="form-group">
+        <label for="materials">Upload Files (PDF, Video, Documents)</label>
+        <input 
+          type="file" 
+          id="materials" 
+          name="materials" 
+          multiple
+          accept=".pdf,.mp4,.avi,.mov,.mkv,.txt,.doc,.docx,.ppt,.pptx,.zip"
+          style="display:block; padding:12px; border:2px dashed #cbd5e1; border-radius:8px; width:100%; box-sizing:border-box; cursor:pointer;"
+        />
+        <p class="help-text">
+          📁 Allowed formats: PDF, MP4, AVI, MOV, MKV, TXT, DOC, DOCX, PPT, PPTX, ZIP
+        </p>
+      </div>
+
+      {% if course.materials %}
+        <div class="form-group">
+          <label>Current Materials</label>
+          <div class="materials-list">
+            {% set materials_data = course.materials | from_json %}
+            {% for material in materials_data %}
+              <div class="material-item">
+                <div>
+                  <strong>{{ material.name }}</strong>
+                  <div style="font-size: 0.85rem; color: var(--text-muted);">Uploaded</div>
+                </div>
+                <form method="POST" action="/course/{{ course.id }}/material/delete/{{ loop.index0 }}" style="margin:0; display:inline;" onsubmit="return confirm('Delete this material?');">
+                  <button type="submit" class="btn-danger">
+                    <i class="fas fa-trash"></i> Delete
+                  </button>
+                </form>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
 
       <div class="button-group">
         <button type="submit" class="btn-primary">
