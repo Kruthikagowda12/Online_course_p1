@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Results - EduStream</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f8fafc;
+            margin: 0;
+            padding: 40px;
+        }
+
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: white;
+            padding: 40px;
+            border-radius: 24px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .score-circle {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            margin: 0 auto 20px;
+            border: 8px solid #f1f5f9;
+        }
+
+        .passed .score-circle {
+            border-color: #10b981;
+            color: #10b981;
+        }
+
+        .failed .score-circle {
+            border-color: #ef4444;
+            color: #ef4444;
+        }
+
+        .score-num {
+            font-size: 3rem;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        .result-status {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .question-review {
+            text-align: left;
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        .correct {
+            color: #10b981;
+        }
+
+        .incorrect {
+            color: #ef4444;
+        }
+
+        .btn {
+            background: #6366f1;
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="card {% if attempt.passed %}passed{% else %}failed{% endif %}">
+            <div class="score-circle">
+                <div class="score-num">{{ attempt.percentage|int }}%</div>
+                <div style="font-size: 0.8rem; font-weight: 700;">SCORE</div>
+            </div>
+            <div class="result-status">
+                {% if attempt.passed %}
+                <i class="fas fa-check-circle"></i> Congratulations! You Passed
+                {% else %}
+                <i class="fas fa-times-circle"></i> Keep Trying! You Failed
+                {% endif %}
+            </div>
+            <p style="color: #64748b;">You got {{ attempt.score|int }} out of {{ attempt.max_score|int }} points.</p>
+            <p style="font-size: 0.9rem; color: #94a3b8;">Required passing score: {{ quiz.passing_score }}%</p>
+
+            <a href="/course/{{ quiz.course_id }}/quizzes" class="btn">Back to Quiz List</a>
+        </div>
+
+        <h2 style="margin-bottom: 20px;">Review Your Answers</h2>
+        {% for q in questions %}
+        {% set user_answer = answers.get(q.id|string) %}
+        <div class="question-review">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+                <strong>{{ loop.index }}. {{ q.question_text }}</strong>
+                {% if user_answer == q.correct_answer %}
+                <span class="correct"><i class="fas fa-check"></i> Correct</span>
+                {% else %}
+                <span class="incorrect"><i class="fas fa-times"></i> Incorrect</span>
+                {% endif %}
+            </div>
+
+            <div style="font-size: 0.9rem; padding: 15px; border-radius: 10px; background: #f8fafc;">
+                <div style="margin-bottom: 5px;">Your Answer: <span
+                        class="{% if user_answer == q.correct_answer %}correct{% else %}incorrect{% endif %}">{{
+                        user_answer or 'No answer' }}</span></div>
+                {% if user_answer != q.correct_answer %}
+                <div style="color: #10b981; font-weight: 600;">Correct Answer: {{ q.correct_answer }}</div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+</body>
+
+</html>

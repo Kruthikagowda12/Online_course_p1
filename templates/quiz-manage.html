@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Quiz Questions - EduStream</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f8fafc;
+            margin: 0;
+            padding: 40px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            margin-bottom: 30px;
+        }
+
+        h1,
+        h2 {
+            color: #1e293b;
+            margin-top: 0;
+        }
+
+        .question-item {
+            border-bottom: 1px solid #e2e8f0;
+            padding: 20px 0;
+        }
+
+        .question-item:last-child {
+            border-bottom: none;
+        }
+
+        .badge {
+            background: #dcfce7;
+            color: #166534;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .btn {
+            background: #6366f1;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-secondary {
+            background: #64748b;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 0.85rem;
+        }
+
+        input,
+        textarea,
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+            <a href="/teacher/{{ quiz.created_by }}" style="color: #64748b; text-decoration: none;"><i
+                    class="fas fa-arrow-left"></i> Back to Dashboard</a>
+            <div style="display: flex; gap: 10px;">
+                <a href="/quiz/{{ quiz.id }}/attempts" class="btn" style="background: #10b981;">
+                    <i class="fas fa-chart-line"></i> View Student Results
+                </a>
+                <form action="/quiz/delete/{{ quiz.id }}" method="POST" style="display: inline;"
+                    onsubmit="return confirm('WARNING: This will delete the quiz, all its questions, and all student results permanently. Continue?');">
+                    <button type="submit" class="btn" style="background: var(--danger);">
+                        <i class="fas fa-trash-alt"></i> Delete Quiz
+                    </button>
+                </form>
+                <span class="badge">Quiz Creation Mode</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <h1>{{ quiz.title }}</h1>
+            <p style="color: #64748b;">{{ quiz.description }}</p>
+            <div style="font-size: 0.85rem; color: #94a3b8;">
+                <span><i class="far fa-clock"></i> {{ quiz.duration_minutes or 'No limit' }} mins</span> |
+                <span><i class="fas fa-bullseye"></i> Passing: {{ quiz.passing_score }}%</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Add a Question</h2>
+            <form action="/quiz/{{ quiz.id }}/question/add" method="POST">
+                <div class="form-group">
+                    <label>Question Text</label>
+                    <textarea name="question_text" required rows="2"></textarea>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-group"><label>Option A</label><input type="text" name="options[]" required></div>
+                    <div class="form-group"><label>Option B</label><input type="text" name="options[]" required></div>
+                    <div class="form-group"><label>Option C</label><input type="text" name="options[]"></div>
+                    <div class="form-group"><label>Option D</label><input type="text" name="options[]"></div>
+                </div>
+
+                <div class="form-group">
+                    <label>Correct Answer (Type exact text of the correct option)</label>
+                    <input type="text" name="correct_answer" required placeholder="e.g., Option A text">
+                </div>
+
+                <button type="submit" class="btn">Add Question to Quiz</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2>Current Questions ({{ questions|length }})</h2>
+            {% for q in questions %}
+            <div class="question-item">
+                <div style="display: flex; justify-content: space-between;">
+                    <strong>{{ loop.index }}. {{ q.question_text }}</strong>
+                    <span style="color: #10b981; font-weight: 700; font-size: 0.8rem;">Correct: {{ q.correct_answer
+                        }}</span>
+                </div>
+                <div style="margin-top: 10px; font-size: 0.9rem; color: #64748b; display: flex; gap: 20px;">
+                    {% for opt in q.options|from_json %}
+                    <span>• {{ opt }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% else %}
+            <p style="text-align: center; color: #94a3b8; padding: 20px;">No questions added yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+</body>
+
+</html>

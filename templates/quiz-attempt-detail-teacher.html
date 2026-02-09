@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Attempt Detail - EduStream</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --success: #10b981;
+            --danger: #ef4444;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --bg: #f8fafc;
+            --border: #e2e8f0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            margin: 0;
+            padding: 40px;
+            color: var(--text-main);
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .back-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            margin-bottom: 25px;
+            border: 1px solid var(--border);
+        }
+
+        .student-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .avatar {
+            width: 50px;
+            height: 50px;
+            background: #eef2ff;
+            color: var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            font-weight: 800;
+        }
+
+        .score-box {
+            display: flex;
+            gap: 30px;
+            background: #f1f5f9;
+            padding: 20px;
+            border-radius: 12px;
+        }
+
+        .score-item span {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .score-value {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: var(--text-main);
+        }
+
+        .question-card {
+            padding: 20px;
+            border-radius: 12px;
+            background: #f8fafc;
+            margin-bottom: 20px;
+            border: 1px solid var(--border);
+        }
+
+        .question-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+
+        .status-badge {
+            font-size: 0.7rem;
+            font-weight: 800;
+            padding: 4px 10px;
+            border-radius: 6px;
+            text-transform: uppercase;
+        }
+
+        .status-correct {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-incorrect {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .option-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .option-item {
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border: 1px solid var(--border);
+            font-size: 0.9rem;
+            background: white;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .option-selected {
+            border-color: var(--text-muted);
+            background: #f1f5f9;
+        }
+
+        .option-correct {
+            background: #dcfce7;
+            border-color: var(--success);
+            color: #166534;
+            font-weight: 600;
+        }
+
+        .option-wrong {
+            background: #fee2e2;
+            border-color: var(--danger);
+            color: #991b1b;
+        }
+
+        .text-success {
+            color: var(--success);
+        }
+
+        .text-danger {
+            color: var(--danger);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="header">
+            <a href="/quiz/{{ quiz.id }}/attempts" class="back-link">
+                <i class="fas fa-arrow-left"></i> Back to All Attempts
+            </a>
+            <div style="font-weight: 700; color: var(--primary);">REVIEW MODE</div>
+        </div>
+
+        <div class="card">
+            <div class="student-info">
+                <div class="avatar">{{ student.name[0] | upper }}</div>
+                <div>
+                    <h1 style="margin:0; font-size: 1.4rem;">{{ student.name }}</h1>
+                    <p style="margin:0; color: var(--text-muted);">{{ student.email }}</p>
+                </div>
+            </div>
+
+            <div class="score-box">
+                <div class="score-item">
+                    <span>Performance</span>
+                    <div class="score-value">{{ (attempt.percentage or 0)|round(1) }}%</div>
+                </div>
+                <div class="score-item">
+                    <span>Final Score</span>
+                    <div class="score-value">{{ attempt.score }} / {{ attempt.max_score }}</div>
+                </div>
+                <div class="score-item">
+                    <span>Result</span>
+                    <div class="score-value {% if attempt.passed %}text-success{% else %}text-danger{% endif %}">
+                        {{ 'PASSED' if attempt.passed else 'FAILED' }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h2 style="font-size: 1.1rem; margin-bottom: 20px;">Detailed Responses</h2>
+
+        {% for question in questions %}
+        {% set student_ans = student_answers[question.id|string] %}
+        {% set is_correct = student_ans == question.correct_answer %}
+
+        <div class="question-card">
+            <div class="question-header">
+                <strong>{{ loop.index }}. {{ question.question_text }}</strong>
+                <span class="status-badge {{ 'status-correct' if is_correct else 'status-incorrect' }}">
+                    {{ 'Correct' if is_correct else 'Incorrect' }}
+                </span>
+            </div>
+
+            <div class="option-list">
+                {% for option in question.options|from_json %}
+                <div class="option-item 
+                    {% if option == question.correct_answer %}option-correct{% endif %}
+                    {% if student_ans == option and not is_correct %}option-wrong{% endif %}
+                ">
+                    {% if student_ans == option %}
+                    <i class="fas {{ 'fa-check-circle' if is_correct else 'fa-times-circle' }}"></i>
+                    {% else %}
+                    <i class="far fa-circle" style="opacity: 0.2;"></i>
+                    {% endif %}
+                    {{ option }}
+                    {% if option == question.correct_answer %}
+                    <span style="margin-left: auto; font-size: 0.7rem; opacity: 0.7;">CORRECT ANSWER</span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+
+            {% if not is_correct and not student_ans %}
+            <p style="color: var(--danger); font-size: 0.85rem; margin-top: 10px; font-weight: 600;">
+                <i class="fas fa-exclamation-triangle"></i> Student did not answer this question.
+            </p>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+
+</body>
+
+</html>

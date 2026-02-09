@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instructor Quiz Tracker - EduStream</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --sidebar-bg: #0f172a;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --success: #10b981;
+            --danger: #ef4444;
+            --border: #e2e8f0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            margin: 0;
+            display: flex;
+            min-height: 100vh;
+            color: var(--text-main);
+        }
+
+        /* Sidebar copy from teacher.html */
+        .sidebar {
+            width: 260px;
+            background: var(--sidebar-bg);
+            color: white;
+            height: 100vh;
+            position: fixed;
+            display: flex;
+            flex-direction: column;
+            padding: 2rem 1rem;
+            z-index: 1000;
+        }
+
+        .sidebar h2 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 2rem;
+            padding: 0 1rem;
+        }
+
+        .nav-item {
+            padding: 12px 15px;
+            color: #94a3b8;
+            text-decoration: none;
+            border-radius: 10px;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .nav-item:hover,
+        .nav-item.active {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .nav-item.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .main-content {
+            margin-left: 260px;
+            flex: 1;
+            padding: 3rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 2rem;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            margin-bottom: 2rem;
+        }
+
+        .quiz-section {
+            margin-bottom: 3rem;
+        }
+
+        .quiz-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .quiz-title {
+            font-size: 1.4rem;
+            font-weight: 800;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .attempt-count {
+            background: #eef2ff;
+            color: var(--primary);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+            padding: 12px;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border);
+        }
+
+        td {
+            padding: 1rem 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .badge {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .badge-pass {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .badge-fail {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .btn-detail {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-muted);
+            background: white;
+            border-radius: 20px;
+            border: 2px dashed var(--border);
+        }
+
+        .header-area {
+            margin-bottom: 2.5rem;
+        }
+
+        .header-area h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            margin: 0 0 5px 0;
+        }
+
+        /* Accordion Styles */
+        .quiz-header {
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.2s;
+            border-radius: 12px 12px 0 0;
+            padding: 1rem;
+        }
+
+        .quiz-header:hover {
+            background: rgba(99, 102, 241, 0.03);
+        }
+
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease-out;
+        }
+
+        .accordion-content.open {
+            max-height: 2000px;
+            /* Large enough to fit content */
+            transition: max-height 0.6s ease-in;
+        }
+
+        .chevron {
+            transition: transform 0.3s;
+            color: var(--text-muted);
+        }
+
+        .quiz-header.open .chevron {
+            transform: rotate(180deg);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="sidebar">
+        <h2>EduStream</h2>
+        <a href="/teacher/{{ teacher_id }}" class="nav-item"><i class="fas fa-th-large"></i> Dashboard</a>
+        <a href="/teacher/{{ teacher_id }}/students" class="nav-item"><i class="fas fa-users"></i> Students</a>
+        <a href="/teacher/{{ teacher_id }}/quiz-tracker" class="nav-item active"><i class="fas fa-chart-bar"></i> Quiz
+            Tracker</a>
+        <a href="/logout" class="nav-item" style="margin-top: auto; color: #fca5a5;"><i class="fas fa-sign-out-alt"></i>
+            Logout</a>
+    </div>
+
+    <div class="main-content">
+        <div class="header-area">
+            <h1>Quiz Results Tracker</h1>
+            <p style="color: var(--text-muted);">Monitor student performance and completion across all your quizzes.</p>
+        </div>
+
+        {% if quiz_data %}
+        {% for item in quiz_data %}
+        <div class="quiz-section">
+            <div class="quiz-header" onclick="toggleAccordion(this)">
+                <h2 class="quiz-title">
+                    <i class="fas fa-file-alt" style="color: var(--primary);"></i>
+                    {{ item.quiz.title }}
+                </h2>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <span class="attempt-count">{{ item.attempt_count }} Attempts</span>
+                    <form action="/quiz/delete/{{ item.quiz.id }}" method="POST" style="display: inline;"
+                        onsubmit="return confirm('Delete this quiz and all student results permanently?');">
+                        <button type="submit"
+                            style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 0.9rem; font-weight: 700;">
+                            <i class="fas fa-trash-alt"></i> Delete
+                        </button>
+                    </form>
+                    <i class="fas fa-chevron-down chevron"></i>
+                </div>
+            </div>
+
+            <div class="accordion-content">
+                {% if item.attempts %}
+                <div class="card" style="padding: 0; overflow: hidden;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Student</th>
+                                <th>Status</th>
+                                <th>Score</th>
+                                <th>Percentage</th>
+                                <th>Submitted</th>
+                                <th>Detail</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for attempt, student in item.attempts %}
+                            <tr>
+                                <td>
+                                    <div style="font-weight: 600;">{{ student.name }}</div>
+                                    <div style="font-size: 0.8rem; color: var(--text-muted);">{{ student.email }}</div>
+                                </td>
+                                <td>
+                                    {% if attempt.passed %}
+                                    <span class="badge badge-pass">Passed</span>
+                                    {% else %}
+                                    <span class="badge badge-fail">Failed</span>
+                                    {% endif %}
+                                </td>
+                                <td><strong>{{ attempt.score }}</strong> / {{ attempt.max_score }}</td>
+                                <td><strong>{{ (attempt.percentage or 0)|round(1) }}%</strong></td>
+                                <td style="font-size: 0.85rem; color: var(--text-muted);">
+                                    {{ attempt.submitted_at.strftime('%d %b, %H:%M') if attempt.submitted_at else 'N/A'
+                                    }}
+                                </td>
+                                <td>
+                                    <a href="/quiz/attempt/{{ attempt.id }}/detail" class="btn-detail">
+                                        Review <i class="fas fa-chevron-right"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p style="color: var(--text-muted); font-style: italic; padding: 20px;">No attempts yet for this quiz.
+                </p>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-clipboard-list" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.2;"></i>
+            <h2>No Quizzes Shared Yet</h2>
+            <p>Quizzes you create for your courses will appear here with student results.</p>
+            <a href="/teacher/{{ teacher_id }}" class="btn-detail"
+                style="font-size: 1rem; margin-top: 1rem; display: inline-block;">
+                Back to Dashboard
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        function toggleAccordion(header) {
+            const section = header.parentElement;
+            const content = section.querySelector('.accordion-content');
+
+            // Toggle classes
+            header.classList.toggle('open');
+            content.classList.toggle('open');
+        }
+    </script>
+
+</body>
+
+</html>
