@@ -13,9 +13,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import secrets
 from datetime import datetime, timedelta
-import razorpay
-import hmac
-import hashlib
+import stripe
 
 load_dotenv()
 
@@ -30,21 +28,70 @@ app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'secret123')
 
 # Database configuration - handle postgres:// for SQLAlchemy compatibility
+# Database configuration - handle postgres:// for SQLAlchemy compatibility
 db_url = os.getenv('DATABASE_URL')
-if db_url and db_url.startswith("postgres://"):
+is_vercel = os.getenv('VERCEL') == '1'
+
+if not db_url:
+    if is_vercel:
+        # On Vercel, we can't write to local filesystem. Use in-memory DB or warn.
+        # Fallback to in-memory sqlite for build/runtime if env var is missing to prevent crash
+        db_url = 'sqlite:///:memory:'
+        print("Warning: DATABASE_URL not found in Vercel environment. Using in-memory Safe Mode.")
+    else:
+        # Local development fallback
+        db_url = 'sqlite:///local.db'
+        print("Warning: DATABASE_URL not found, falling back to local sqlite.")
+elif db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql://", 1)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Razorpay Configuration
-razorpay_client = razorpay.Client(auth=(os.getenv('RAZORPAY_KEY_ID', ''), os.getenv('RAZORPAY_KEY_SECRET', '')))
+@app.route('/health')
+def health_check():
+    """Health check endpoint to verify environment variables"""
+    # Check DB connection
+    db_status = "ok"
+    try:
+        db.session.execute(text("SELECT 1"))
+    except Exception as e:
+        db_status = f"error: {str(e)}"
+        
+    return jsonify({
+        "status": "healthy",
+        "timestamp": datetime.utcnow().isoformat(),
+        "env": {
+            "vercel": is_vercel,
+            "db_configured": bool(os.getenv('DATABASE_URL')),
+            "cloudinary_configured": bool(os.getenv('CLOUDINARY_CLOUD_NAME')),
+            "razorpay_configured": bool(os.getenv('RAZORPAY_KEY_ID')),
+            "smtp_configured": bool(os.getenv('SMTP_SERVER'))
+        },
+        "db_connection": db_status
+    })
+
+@app.errorhandler(500)
+def internal_error(error):
+    # Print rich traceback to logs for Vercel debugging
+    import traceback
+    print("500 ERROR OCCURRED:")
+    print(traceback.format_exc())
+    return f"Internal Server Error: {str(error)}", 500
+
+
+# Stripe Configuration
+stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
+stripe_publishable_key = os.getenv('STRIPE_PUBLISHABLE_KEY')
 
 # File upload config
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads')
 ALLOWED_EXTENSIONS = {'pdf', 'mp4', 'avi', 'mov', 'mkv', 'txt', 'doc', 'docx', 'ppt', 'pptx', 'zip'}
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
+try:
+    if not os.path.exists(UPLOAD_FOLDER):
+        os.makedirs(UPLOAD_FOLDER)
+except Exception as e:
+    print(f"Warning: Could not create upload folder: {e}. This is expected on Vercel.")
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
@@ -765,35 +812,30 @@ def initiate_payment(course_id):
         flash('You are already enrolled in this course.')
         return redirect(url_for('student_dashboard', id=student_id))
     
-    # Create Razorpay Order
-    amount_in_paise = int(course.price * 100)
-    order_data = {
-        'amount': amount_in_paise,
-        'currency': course.currency,
-        'receipt': f'rcpt_{student_id}_{course_id}',
-        'payment_capture': 1
-    }
-    
-    # Check if we should use Simulated Mode
-    key_id = os.getenv('RAZORPAY_KEY_ID', '')
-    key_secret = os.getenv('RAZORPAY_KEY_SECRET', '')
-    payment_mode = os.getenv('PAYMENT_MODE', 'test').lower()
-    is_simulated = (not key_id or key_id == 'rzp_test_xxxx' or not key_secret or key_secret == 'xxxx')
-    
-    # Explicitly force sandbox if requested
-    if payment_mode == 'sandbox':
-        is_simulated = True
-
     try:
-        if is_simulated:
-            # Create a mock order object for the template
-            razorpay_order = {
-                'id': f'mock_order_{secrets.token_hex(8)}',
-                'amount': amount_in_paise,
-                'currency': course.currency
+        # Create Stripe Checkout Session
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price_data': {
+                    'currency': course.currency.lower() if course.currency else 'inr',
+                    'product_data': {
+                        'name': course.title,
+                        'description': course.description[:255] if course.description else None,
+                    },
+                    'unit_amount': int(course.price * 100),
+                },
+                'quantity': 1,
+            }],
+            mode='payment',
+            success_url=url_for('payment_success', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
+            cancel_url=url_for('payment_cancel', _external=True),
+            client_reference_id=str(student_id),
+            metadata={
+                'course_id': str(course_id),
+                'student_id': str(student_id)
             }
-        else:
-            razorpay_order = razorpay_client.order.create(data=order_data)
+        )
         
         # Create Payment record
         payment = Payment(
@@ -801,68 +843,68 @@ def initiate_payment(course_id):
             course_id=course_id,
             amount=course.price,
             currency=course.currency,
-            order_id=razorpay_order['id'],
+            payment_gateway='stripe',
+            order_id=checkout_session.id,
             status='pending'
         )
         db.session.add(payment)
         db.session.commit()
         
-        return render_template('payment.html', 
-                               order=razorpay_order, 
-                               course=course,
-                               key_id=key_id,
-                               student=User.query.get(student_id),
-                               is_simulated=is_simulated)
+        return redirect(checkout_session.url, code=303)
+        
     except Exception as e:
         flash(f'Error initiating payment: {str(e)}')
         return redirect(url_for('student_dashboard', id=student_id))
 
 
-@app.route('/payment/callback', methods=['POST'])
-def payment_callback():
-    # Verify payment signature
-    payment_id = request.form.get('razorpay_payment_id')
-    order_id = request.form.get('razorpay_order_id')
-    signature = request.form.get('razorpay_signature')
-    # Check for simulated success
-    is_mock = order_id and order_id.startswith('mock_order_')
-    
-    if not is_mock:
-        # Real signature verification
-        params_dict = {
-            'razorpay_order_id': order_id,
-            'razorpay_payment_id': payment_id,
-            'razorpay_signature': signature
-        }
-        try:
-            razorpay_client.utility.verify_payment_signature(params_dict)
-        except Exception as e:
-            flash(f'Payment verification failed: {str(e)}')
-            return redirect(url_for('student_dashboard', id=session.get('id')))
-    
-    # Update payment record
-    payment = Payment.query.filter_by(order_id=order_id).first()
-    if payment:
-        payment.status = 'completed'
-        payment.transaction_id = payment_id or f'mock_pay_{secrets.token_hex(6)}'
+@app.route('/payment/success', methods=['GET'])
+def payment_success():
+    session_id = request.args.get('session_id')
+    if not session_id:
+        flash('Invalid payment session.')
+        return redirect(url_for('home'))
         
-        # Create Enrollment if not exists
-        existing_enroll = Enrollment.query.filter_by(
-            student_id=payment.student_id, 
-            course_id=payment.course_id
-        ).first()
+    try:
+        # Verify session with Stripe
+        checkout_session = stripe.checkout.Session.retrieve(session_id)
         
-        if not existing_enroll:
-            enrollment = Enrollment(student_id=payment.student_id, course_id=payment.course_id)
-            db.session.add(enrollment)
+        if checkout_session.payment_status == 'paid':
+            # Update payment record
+            payment = Payment.query.filter_by(order_id=session_id).first()
+            if payment:
+                payment.status = 'completed'
+                payment.transaction_id = checkout_session.payment_intent
+                payment.updated_at = datetime.utcnow()
+                
+                # Enroll student
+                existing_enroll = Enrollment.query.filter_by(
+                    student_id=payment.student_id, 
+                    course_id=payment.course_id
+                ).first()
+                
+                if not existing_enroll:
+                    enrollment = Enrollment(student_id=payment.student_id, course_id=payment.course_id)
+                    db.session.add(enrollment)
+                
+                db.session.commit()
+                
+                flash('Payment successful! You are now enrolled.')
+                return redirect(url_for('student_dashboard', id=payment.student_id))
+            else:
+                 # Fallback if payment record creation failed or wasn't found (rare)
+                 pass
         
-        db.session.commit()
-        
-        flash('Payment successful! You are now enrolled.')
-        return redirect(url_for('student_dashboard', id=payment.student_id))
-    
-    flash('Payment record not found.')
-    return redirect(url_for('student_dashboard', id=session.get('id')))
+        flash('Payment not completed.')
+        return redirect(url_for('home'))
+            
+    except Exception as e:
+        flash(f'Error verifying payment: {str(e)}')
+        return redirect(url_for('home'))
+
+
+@app.route('/payment/cancel', methods=['GET'])
+def payment_cancel():
+    return render_template('payment-cancel.html')
 
 @app.route('/student/<int:id>')
 @role_required('student')
@@ -884,16 +926,19 @@ def student_dashboard(id):
         )
 
     # attach teacher name to enrolled courses as well
+    # attach teacher name to enrolled courses as well
     for c in enrolled_courses:
         teacher = User.query.get(c.teacher_id) if c.teacher_id else None
         c.teacher_name = teacher.name if teacher else 'Unknown'
 
+    enrolled_course_ids = [c.id for c in enrolled_courses]
+
     return render_template(
         'student.html',
-        # courses=courses,
         student_id=id,
         all_courses=all_courses,
-        enrolled_courses=enrolled_courses
+        enrolled_courses=enrolled_courses,
+        enrolled_course_ids=enrolled_course_ids
     )
 
 

@@ -374,6 +374,13 @@
           </div>
           <p>{{ course.description }}</p>
 
+          {% if course.id in enrolled_course_ids %}
+          <button class="btn-primary"
+            style="width:100%; background: #cbd5e1; color: #64748b; cursor: not-allowed; border: 1px solid #cbd5e1;"
+            disabled>
+            <i class="fas fa-check-circle"></i> Already Enrolled
+          </button>
+          {% else %}
           <form method="POST" action="/enroll">
             <input type="hidden" name="student_id" value="{{ student_id }}">
             <input type="hidden" name="course_id" value="{{ course.id }}">
@@ -381,6 +388,7 @@
               {% if course.price > 0 %}Buy Now{% else %}Enroll Now{% endif %}
             </button>
           </form>
+          {% endif %}
         </div>
         {% endfor %}
       </div>
