@@ -16,8 +16,6 @@ from datetime import datetime, timedelta
 import stripe
 
 load_dotenv()
-
-# Configure Cloudinary
 cloudinary.config(
     cloud_name=os.getenv('CLOUDINARY_CLOUD_NAME'),
     api_key=os.getenv('CLOUDINARY_API_KEY'),
@@ -27,19 +25,15 @@ cloudinary.config(
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'secret123')
 
-# Database configuration - handle postgres:// for SQLAlchemy compatibility
-# Database configuration - handle postgres:// for SQLAlchemy compatibility
+
 db_url = os.getenv('DATABASE_URL')
 is_vercel = os.getenv('VERCEL') == '1'
 
 if not db_url:
-    if is_vercel:
-        # On Vercel, we can't write to local filesystem. Use in-memory DB or warn.
-        # Fallback to in-memory sqlite for build/runtime if env var is missing to prevent crash
+    if is_vercel:  
         db_url = 'sqlite:///:memory:'
         print("Warning: DATABASE_URL not found in Vercel environment. Using in-memory Safe Mode.")
     else:
-        # Local development fallback
         db_url = 'sqlite:///local.db'
         print("Warning: DATABASE_URL not found, falling back to local sqlite.")
 elif db_url.startswith("postgres://"):
@@ -51,7 +45,6 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 @app.route('/health')
 def health_check():
     """Health check endpoint to verify environment variables"""
-    # Check DB connection
     db_status = "ok"
     try:
         db.session.execute(text("SELECT 1"))
@@ -73,18 +66,14 @@ def health_check():
 
 @app.errorhandler(500)
 def internal_error(error):
-    # Print rich traceback to logs for Vercel debugging
     import traceback
     print("500 ERROR OCCURRED:")
     print(traceback.format_exc())
     return f"Internal Server Error: {str(error)}", 500
 
-
-# Stripe Configuration
 stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
 stripe_publishable_key = os.getenv('STRIPE_PUBLISHABLE_KEY')
 
-# File upload config
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads')
 ALLOWED_EXTENSIONS = {'pdf', 'mp4', 'avi', 'mov', 'mkv', 'txt', 'doc', 'docx', 'ppt', 'pptx', 'zip'}
 try:
@@ -98,13 +87,10 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-# Custom Jinja2 filter to parse JSON
 @app.template_filter('from_json')
 def from_json(value):
     return json.loads(value) if value else []
 
-
-# Custom Jinja2 filter to sanitize URLs (remove backslashes)
 @app.template_filter('sanitize_url')
 def sanitize_url(value):
     return value.replace('\\', '/') if value else value
@@ -113,7 +99,6 @@ def sanitize_url(value):
 db = SQLAlchemy(app)
 
 
-# Models
 class User(db.Model):
     __tablename__ = 'users'
 
@@ -208,7 +193,7 @@ def role_required(*allowed_roles):
             if 'id' not in session:
                 return redirect(url_for('login_page'))
             user_role = session.get('role')
-            # admin can access anything
+        
             if user_role == 'admin':
                 return f(*args, **kwargs)
             if allowed_roles and user_role not in allowed_roles:
@@ -218,8 +203,6 @@ def role_required(*allowed_roles):
         return wrapped
     return decorator
 
-
-# Email Utility Functions
 def send_verification_email(user_email, user_name, token):
     """Send email verification link to user"""
     try:
@@ -230,16 +213,14 @@ def send_verification_email(user_email, user_name, token):
         from_email = os.getenv('SMTP_FROM_EMAIL')
         from_name = os.getenv('SMTP_FROM_NAME', 'Online Course Platform')
         
-        # Create verification link
         verification_link = url_for('verify_email', token=token, _external=True)
         
-        # Create email message
         msg = MIMEMultipart('alternative')
         msg['Subject'] = 'Verify Your Email - Online Course Platform'
         msg['From'] = f'{from_name} <{from_email}>'
         msg['To'] = user_email
         
-        # HTML email body
+    
         html = f"""
         <html>
           <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
@@ -262,8 +243,7 @@ def send_verification_email(user_email, user_name, token):
           </body>
         </html>
         """
-        
-        # Plain text version
+            
         text = f"""
         Welcome to Online Course Platform!
         
@@ -281,7 +261,6 @@ def send_verification_email(user_email, user_name, token):
         msg.attach(part1)
         msg.attach(part2)
         
-        # Send email
         with smtplib.SMTP(smtp_server, smtp_port) as server:
             server.starttls()
             server.login(smtp_username, smtp_password)
@@ -303,13 +282,10 @@ def send_assignment_email(teacher_email, teacher_name, course_title):
         from_email = os.getenv('SMTP_FROM_EMAIL')
         from_name = os.getenv('SMTP_FROM_NAME', 'EduStream Admin')
         
-        # Create email message
         msg = MIMEMultipart('alternative')
         msg['Subject'] = f'New Course Assigned: {course_title}'
         msg['From'] = f'{from_name} <{from_email}>'
         msg['To'] = teacher_email
-        
-        # HTML email body
         html = f"""
         <html>
           <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
@@ -333,8 +309,7 @@ def send_assignment_email(teacher_email, teacher_name, course_title):
         part2 = MIMEText(html, 'html')
         msg.attach(part1)
         msg.attach(part2)
-        
-        # Send email
+    
         with smtplib.SMTP(smtp_server, smtp_port) as server:
             server.starttls()
             server.login(smtp_username, smtp_password)
@@ -345,28 +320,23 @@ def send_assignment_email(teacher_email, teacher_name, course_title):
         print(f"Error sending assignment email: {e}")
         return False
 
-
 def generate_verification_token():
     """Generate a secure random token for email verification"""
     return secrets.token_urlsafe(32)
 
 
-# Home
 @app.route('/')
 def home():
     return render_template('register.html')
 
 
-# Serve separate registration page (GET)
 @app.route('/register', methods=['GET'])
 def register_page():
     return render_template('register.html')
 
 
-# Serve separate login page (GET)
 @app.route('/login', methods=['GET'])
 def login_page():
-    # generic login page (no role preselected)
     return render_template('login.html', role=None)
 
 
@@ -391,7 +361,6 @@ def register():
             message='Email already registered. Please login.'
         )
 
-    # For students, require email verification
     if role == 'student':
         token = generate_verification_token()
         token_expiry = datetime.utcnow() + timedelta(hours=24)
@@ -409,7 +378,6 @@ def register():
         db.session.add(user)
         db.session.commit()
         
-        # Send verification email
         email_sent = send_verification_email(email, name, token)
         
         if email_sent:
@@ -426,13 +394,12 @@ def register():
                 error=True
             )
     else:
-        # Teachers and admins don't need email verification
         user = User(
             name=name,
             email=email,
             password=password,
             role=role,
-            email_verified=True  # Auto-verify for non-students
+            email_verified=True  
         )
         
         db.session.add(user)
@@ -460,7 +427,6 @@ def login():
     if not user:
         return render_template('login.html', message='Invalid login credentials', role=request.form.get('role'))
 
-    # Check email verification for students
     if user.role == 'student' and not user.email_verified:
         return render_template(
             'login.html', 
@@ -470,7 +436,6 @@ def login():
             role=request.form.get('role')
         )
 
-    # set session
     session['id'] = user.id
     session['name'] = user.name
     session['role'] = user.role
@@ -480,7 +445,6 @@ def login():
         session.clear()
         return render_template('login.html', message='Role mismatch - use correct login flow', role=expected_role)
 
-    # redirect based on role
     if user.role == 'student':
         return redirect(url_for('student_dashboard', id=user.id))
     if user.role == 'teacher':
@@ -520,31 +484,17 @@ def resend_verification():
     if user.email_verified:
         return render_template('login.html', message='Email is already verified. Please login.')
     
-    # Generate new token
+    
     token = generate_verification_token()
     user.verification_token = token
     user.token_expiry = datetime.utcnow() + timedelta(hours=24)
     db.session.commit()
-    
-    # Send email
+   
     if send_verification_email(user.email, user.name, token):
         return render_template('login.html', message='Verification email resent! Please check your inbox.')
     else:
         return render_template('login.html', message='Error sending email. Please try again later.', error=True)
-
-
-    # if not user:
-    #     return 'Invalid login'
-    # session['name'] = user.name
-    #   # Store the name in the session
-    # if user.role == 'student':
-        
-    #     return redirect(f'/student/{user.id}')
-        
-    # else:
-    #     return redirect(f'/teacher/{user.id}')
-    
-    
+  
 @app.route('/admin/assign-course', methods=['POST'])
 @role_required('admin')
 def admin_assign_course():
@@ -561,7 +511,6 @@ def admin_assign_course():
     course.teacher_id = teacher_id
     db.session.commit()
 
-    # Notify teacher via email
     send_assignment_email(teacher.email, teacher.name, course.title)
 
     flash(f'Course "{course.title}" successfully assigned to {teacher.name}')
@@ -598,7 +547,7 @@ def teacher_dashboard(id):
 @app.route('/teacher/<int:id>/students')
 @role_required('teacher')
 def teacher_students(id):
-    # Get all students enrolled in any course by this teacher
+    
     teacher_courses = Course.query.filter_by(teacher_id=id).all()
     course_ids = [c.id for c in teacher_courses]
 
@@ -611,7 +560,6 @@ def teacher_students(id):
             .all()
         )
 
-        # dedupe by id
         seen = set()
         for s in enrolled:
             if s.id not in seen:
@@ -629,11 +577,11 @@ def admin_dashboard():
     courses = Course.query.all()
     teachers = User.query.filter_by(role='teacher').all()
     
-    # Calculate revenue
+           
     total_revenue = db.session.query(db.func.sum(Payment.amount)).filter(Payment.status == 'completed').scalar() or 0
     total_courses = Course.query.count()
 
-    # Map teacher IDs to names for the course table
+    
     teacher_map = {t.id: t.name for t in teachers}
 
     stats = {
@@ -697,16 +645,57 @@ def admin_create_user():
 @role_required('admin')
 def admin_delete_user(user_id):
     user = User.query.get(user_id)
-    if user:
+    if not user:
+        flash('User not found.')
+        return redirect(url_for('admin_dashboard'))
+
+    try:
+        # 1. Delete Student Data (if user acted as student)
+        Enrollment.query.filter_by(student_id=user_id).delete()
+        Payment.query.filter_by(student_id=user_id).delete()
+        QuizAttempt.query.filter_by(student_id=user_id).delete()
+
+        # 2. Delete Teacher Data (if user acted as teacher)
+        # Find all courses by this teacher
+        teacher_courses = Course.query.filter_by(teacher_id=user_id).all()
+        for course in teacher_courses:
+            # Delete enrollments for this course
+            Enrollment.query.filter_by(course_id=course.id).delete()
+            # Delete payments for this course
+            Payment.query.filter_by(course_id=course.id).delete()
+            # Delete quizzes for this course (and questions)
+            quizzes = Quiz.query.filter_by(course_id=course.id).all()
+            for quiz in quizzes:
+                Question.query.filter_by(quiz_id=quiz.id).delete()
+                QuizAttempt.query.filter_by(quiz_id=quiz.id).delete()
+                db.session.delete(quiz)
+            
+            # Delete the course itself
+            db.session.delete(course)
+        
+        # Delete any standalone quizzes created by this user
+        other_quizzes = Quiz.query.filter_by(created_by=user_id).all()
+        for quiz in other_quizzes:
+             Question.query.filter_by(quiz_id=quiz.id).delete()
+             QuizAttempt.query.filter_by(quiz_id=quiz.id).delete()
+             db.session.delete(quiz)
+
+        # 3. Delete the User
         db.session.delete(user)
         db.session.commit()
-        flash(f'User {user.email} deleted successfully!')
+        flash(f'User {user.email} and all associated data deleted successfully!')
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error deleting user: {e}")
+        flash('Error deleting user. Please check server logs.')
+
     return redirect(url_for('admin_dashboard'))
 
 @app.route('/teacher/<int:teacher_id>/student/<int:student_id>')
 @role_required('teacher')
 def teacher_student_detail(teacher_id, student_id):
-    # show a focused view of a student and the courses they are enrolled in
+    
     student = User.query.get_or_404(student_id)
 
     enrolled_courses = (
@@ -716,7 +705,7 @@ def teacher_student_detail(teacher_id, student_id):
         .all()
     )
 
-    # annotate courses with teacher relation and teacher name
+    
     for c in enrolled_courses:
         c.is_teacher_course = (c.teacher_id == teacher_id)
         teacher = User.query.get(c.teacher_id) if c.teacher_id else None
@@ -736,13 +725,13 @@ def delete_material(course_id, material_index):
         flash('Course not found')
         return redirect(url_for('teacher_dashboard', id=session.get('id')))
     
-    # Check if user is the teacher of this course OR is an admin
+    
     is_admin = session.get('role') == 'admin'
     if course.teacher_id != session.get('id') and not is_admin:
         flash('You do not have permission to edit this course')
         return redirect(url_for('teacher_dashboard', id=session.get('id')))
     
-    # Parse materials and remove the specified one
+    
     materials_list = []
     if course.materials:
         try:
@@ -751,19 +740,18 @@ def delete_material(course_id, material_index):
             materials_list = []
     
     if 0 <= material_index < len(materials_list):
-        # Delete file from disk if it exists and is a file type
+        
         material = materials_list[material_index]
         if material.get('type') == 'file':
             try:
-                # Note: For Cloudinary integration, we might want to delete from Cloudinary too
-                # but for local UPLOAD_FOLDER files:
+                
                 filepath = os.path.join(app.config['UPLOAD_FOLDER'], material['path'].split('/')[-1])
                 if os.path.exists(filepath):
                     os.remove(filepath)
             except Exception as e:
                 print(f"Error deleting file: {e}")
         
-        # Remove from list (handles both 'file' and 'youtube' types)
+        
         materials_list.pop(material_index)
         course.materials = json.dumps(materials_list)
         db.session.add(course)
@@ -806,14 +794,14 @@ def initiate_payment(course_id):
     student_id = session.get('id')
     course = Course.query.get_or_404(course_id)
     
-    # Check if already enrolled
+    
     existing = Enrollment.query.filter_by(student_id=student_id, course_id=course_id).first()
     if existing:
         flash('You are already enrolled in this course.')
         return redirect(url_for('student_dashboard', id=student_id))
     
     try:
-        # Create Stripe Checkout Session
+        
         checkout_session = stripe.checkout.Session.create(
             payment_method_types=['card'],
             line_items=[{
@@ -836,8 +824,7 @@ def initiate_payment(course_id):
                 'student_id': str(student_id)
             }
         )
-        
-        # Create Payment record
+
         payment = Payment(
             student_id=student_id,
             course_id=course_id,
@@ -865,18 +852,18 @@ def payment_success():
         return redirect(url_for('home'))
         
     try:
-        # Verify session with Stripe
+        
         checkout_session = stripe.checkout.Session.retrieve(session_id)
         
         if checkout_session.payment_status == 'paid':
-            # Update payment record
+            
             payment = Payment.query.filter_by(order_id=session_id).first()
             if payment:
                 payment.status = 'completed'
                 payment.transaction_id = checkout_session.payment_intent
                 payment.updated_at = datetime.utcnow()
                 
-                # Enroll student
+                
                 existing_enroll = Enrollment.query.filter_by(
                     student_id=payment.student_id, 
                     course_id=payment.course_id
@@ -891,7 +878,7 @@ def payment_success():
                 flash('Payment successful! You are now enrolled.')
                 return redirect(url_for('student_dashboard', id=payment.student_id))
             else:
-                 # Fallback if payment record creation failed or wasn't found (rare)
+                 
                  pass
         
         flash('Payment not completed.')
@@ -910,14 +897,14 @@ def payment_cancel():
 @role_required('student')
 def student_dashboard(id):
 
-    # all courses (for enrollment)
+    
     all_courses = Course.query.all()
-    # attach teacher name to each course for template display
+    
     for c in all_courses:
         teacher = User.query.get(c.teacher_id) if c.teacher_id else None
         c.teacher_name = teacher.name if teacher else 'Unknown'
 
-    # courses student already enrolled in
+    
     enrolled_courses = (
         db.session.query(Course)
         .join(Enrollment, Course.id == Enrollment.course_id)
@@ -925,8 +912,7 @@ def student_dashboard(id):
         .all()
         )
 
-    # attach teacher name to enrolled courses as well
-    # attach teacher name to enrolled courses as well
+    
     for c in enrolled_courses:
         teacher = User.query.get(c.teacher_id) if c.teacher_id else None
         c.teacher_name = teacher.name if teacher else 'Unknown'
@@ -949,7 +935,6 @@ def enroll():
     course_id = request.form['course_id']
     course = Course.query.get_or_404(course_id)
 
-    # prevent duplicate enrollment
     existing = Enrollment.query.filter_by(
         student_id=student_id,
         course_id=course_id
@@ -959,14 +944,14 @@ def enroll():
         flash('Already enrolled!')
         return redirect(f'/student/{student_id}')
 
-    # Check if course is paid
+    
     payment_mode = os.getenv('PAYMENT_MODE', 'test').lower()
     
     if course.price > 0 and payment_mode != 'bypass':
-        # Redirect to payment initiation instead of enrolling directly
+        
         return initiate_payment(course_id)
 
-    # Free course - enroll directly
+    
     enroll = Enrollment(
         student_id=student_id,
         course_id=course_id
@@ -977,9 +962,7 @@ def enroll():
     flash('Enrolled successfully!')
     return redirect(f'/student/{student_id}')
 
-
-# --- Quiz System Endpoints ---
-
+# quizze
 @app.route('/course/<int:course_id>/quiz/create', methods=['GET', 'POST'])
 @role_required('teacher')
 def create_quiz(course_id):
@@ -1041,7 +1024,7 @@ def add_question(quiz_id):
 @role_required('student')
 def list_quizzes(course_id):
     course = Course.query.get_or_404(course_id)
-    # Check enrollment
+    
     enrolled = Enrollment.query.filter_by(student_id=session.get('id'), course_id=course_id).first()
     if not enrolled:
         flash('You must be enrolled to access quizzes.')
@@ -1057,7 +1040,7 @@ def list_quizzes(course_id):
 @role_required('student')
 def take_quiz(quiz_id):
     quiz = Quiz.query.get_or_404(quiz_id)
-    # Check enrollment
+    
     enrolled = Enrollment.query.filter_by(student_id=session.get('id'), course_id=quiz.course_id).first()
     if not enrolled:
         flash('You must be enrolled to take this quiz.')
@@ -1065,7 +1048,7 @@ def take_quiz(quiz_id):
         
     questions = Question.query.filter_by(quiz_id=quiz_id).order_by(Question.order).all()
     
-    # Create an attempt record
+    
     attempt = QuizAttempt(
         quiz_id=quiz_id,
         student_id=session.get('id')
@@ -1129,7 +1112,7 @@ def quiz_results(attempt_id):
 def view_quiz_attempts(quiz_id):
     quiz = Quiz.query.get_or_404(quiz_id)
     
-    # Get all attempts for this quiz
+    
     attempts = db.session.query(QuizAttempt, User).join(
         User, QuizAttempt.student_id == User.id
     ).filter(
@@ -1162,20 +1145,17 @@ def view_attempt_detail(attempt_id):
         student_answers=student_answers
     )
 
-
 @app.route('/teacher/<int:id>/quiz-tracker', methods=['GET'])
 @role_required('teacher')
 def teacher_quiz_tracker(id):
     if id != session.get('id'):
         flash('Unauthorized')
         return redirect(url_for('home'))
-        
-    # Get all quizzes created by this teacher
     quizzes = Quiz.query.filter_by(created_by=id).all()
     
     quiz_data = []
     for quiz in quizzes:
-        # Get attempts for this quiz with student info
+        
         attempts = db.session.query(QuizAttempt, User).join(
             User, QuizAttempt.student_id == User.id
         ).filter(
@@ -1200,7 +1180,6 @@ def teacher_quiz_tracker(id):
 def delete_quiz(quiz_id):
     quiz = Quiz.query.get_or_404(quiz_id)
     
-    # Permission check: Only creator or admin
     is_admin = session.get('role') == 'admin'
     if quiz.created_by != session.get('id') and not is_admin:
         flash('You do not have permission to delete this quiz.')
@@ -1228,10 +1207,7 @@ def delete_quiz(quiz_id):
 @app.route('/admin/delete-course/<int:course_id>', methods=['POST'])
 @role_required('admin')
 def admin_delete_course(course_id):
-    # delete enrollments first (important)
     Enrollment.query.filter_by(course_id=course_id).delete()
-
-    # delete course
     course = Course.query.get(course_id)
     if course:
         title = course.title
