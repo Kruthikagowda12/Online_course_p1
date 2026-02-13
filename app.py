@@ -547,26 +547,7 @@ def teacher_dashboard(id):
 @app.route('/teacher/<int:id>/students')
 @role_required('teacher')
 def teacher_students(id):
-    
-    teacher_courses = Course.query.filter_by(teacher_id=id).all()
-    course_ids = [c.id for c in teacher_courses]
-
-    students = []
-    if course_ids:
-        enrolled = (
-            db.session.query(User)
-            .join(Enrollment, User.id == Enrollment.student_id)
-            .filter(Enrollment.course_id.in_(course_ids))
-            .all()
-        )
-
-        seen = set()
-        for s in enrolled:
-            if s.id not in seen:
-                seen.add(s.id)
-                students.append(s)
-
-    return render_template('teacher-students.html', students=students, teacher_id=id)
+    return redirect(url_for('teacher_dashboard', id=id) + '#studentsModal')
 
 
 @app.route('/admin')
@@ -695,26 +676,7 @@ def admin_delete_user(user_id):
 @app.route('/teacher/<int:teacher_id>/student/<int:student_id>')
 @role_required('teacher')
 def teacher_student_detail(teacher_id, student_id):
-    
-    student = User.query.get_or_404(student_id)
-
-    enrolled_courses = (
-        db.session.query(Course)
-        .join(Enrollment, Course.id == Enrollment.course_id)
-        .filter(Enrollment.student_id == student_id)
-        .all()
-    )
-
-    
-    for c in enrolled_courses:
-        c.is_teacher_course = (c.teacher_id == teacher_id)
-        teacher = User.query.get(c.teacher_id) if c.teacher_id else None
-        c.teacher_name = teacher.name if teacher else 'Unknown'
-
-    return render_template('teacher-student-detail.html',
-                           student=student,
-                           enrolled_courses=enrolled_courses,
-                           teacher_id=teacher_id)
+    return redirect(url_for('teacher_dashboard', id=teacher_id) + '#studentsModal')
 
 
 @app.route('/course/<int:course_id>/material/delete/<int:material_index>', methods=['POST'])
@@ -725,13 +687,7 @@ def delete_material(course_id, material_index):
         flash('Course not found')
         return redirect(url_for('teacher_dashboard', id=session.get('id')))
     
-    
-    is_admin = session.get('role') == 'admin'
-    if course.teacher_id != session.get('id') and not is_admin:
-        flash('You do not have permission to edit this course')
-        return redirect(url_for('teacher_dashboard', id=session.get('id')))
-    
-    
+    materials_list = []
     materials_list = []
     if course.materials:
         try:
@@ -984,10 +940,25 @@ def create_quiz(course_id):
         db.session.add(quiz)
         db.session.commit()
         
+        if request.form.get('redirect_to') == 'manage_course_quizzes':
+            flash('Quiz created successfully!')
+            return redirect(url_for('manage_course_quizzes', course_id=course_id))
+            
         flash('Quiz created successfully! Now add some questions.')
         return redirect(url_for('manage_quiz', quiz_id=quiz.id))
         
-    return render_template('quiz-create.html', course=course)
+    return redirect(url_for('manage_course_quizzes', course_id=course_id))
+
+
+@app.route('/course/<int:course_id>/manage-quizzes', methods=['GET'])
+@role_required('teacher')
+def manage_course_quizzes(course_id):
+    course = Course.query.get_or_404(course_id)
+    quizzes = Quiz.query.filter_by(course_id=course_id).all()
+    # Populate questions for each quiz for modal viewing
+    for quiz in quizzes:
+        quiz.questions = Question.query.filter_by(quiz_id=quiz.id).order_by(Question.order).all()
+    return render_template('manage-course-quizzes.html', course=course, quizzes=quizzes)
 
 
 @app.route('/quiz/<int:quiz_id>/manage', methods=['GET'])
@@ -995,7 +966,7 @@ def create_quiz(course_id):
 def manage_quiz(quiz_id):
     quiz = Quiz.query.get_or_404(quiz_id)
     questions = Question.query.filter_by(quiz_id=quiz_id).order_by(Question.order).all()
-    return render_template('quiz-manage.html', quiz=quiz, questions=questions)
+    return redirect(url_for('manage_course_quizzes', course_id=quiz.course_id))
 
 
 @app.route('/quiz/<int:quiz_id>/question/add', methods=['POST'])
@@ -1017,6 +988,10 @@ def add_question(quiz_id):
     db.session.commit()
     
     flash('Question added successfully!')
+    if request.form.get('redirect_to') == 'manage_course_quizzes':
+        # Pass a hash to open the modal back
+        return redirect(url_for('manage_course_quizzes', course_id=quiz.course_id) + f'#manageQuizModal{quiz_id}')
+        
     return redirect(url_for('manage_quiz', quiz_id=quiz_id))
 
 
@@ -1110,20 +1085,7 @@ def quiz_results(attempt_id):
 @app.route('/quiz/<int:quiz_id>/attempts', methods=['GET'])
 @role_required('teacher')
 def view_quiz_attempts(quiz_id):
-    quiz = Quiz.query.get_or_404(quiz_id)
-    
-    
-    attempts = db.session.query(QuizAttempt, User).join(
-        User, QuizAttempt.student_id == User.id
-    ).filter(
-        QuizAttempt.quiz_id == quiz_id
-    ).order_by(QuizAttempt.submitted_at.desc()).all()
-    
-    return render_template(
-        'quiz-attempts-teacher.html',
-        quiz=quiz,
-        attempts=attempts
-    )
+    return redirect(url_for('teacher_quiz_tracker', id=session.get('id')))
 
 
 @app.route('/quiz/attempt/<int:attempt_id>/detail', methods=['GET'])
@@ -1201,6 +1163,9 @@ def delete_quiz(quiz_id):
         db.session.rollback()
         flash(f'Error deleting quiz: {str(e)}')
         
+    if request.referrer and 'manage-quizzes' in request.referrer:
+         return redirect(request.referrer)
+         
     return redirect(url_for('teacher_dashboard', id=session.get('id')))
 
 
@@ -1225,11 +1190,7 @@ def edit_course_materials(course_id):
         flash('Course not found')
         return redirect(url_for('teacher_dashboard', id=session.get('id')))
     
-    # Check if user is the teacher of this course OR is an admin
-    is_admin = session.get('role') == 'admin'
-    if course.teacher_id != session.get('id') and not is_admin:
-        flash('You do not have permission to edit this course')
-        return redirect(url_for('teacher_dashboard', id=session.get('id')))
+    
     
     return render_template(
         'edit-course.html',
@@ -1246,11 +1207,7 @@ def update_course_materials(course_id):
             flash('Course not found')
             return redirect(url_for('teacher_dashboard', id=session.get('id')))
         
-        # Check if user is the teacher of this course OR is an admin
-        is_admin = session.get('role') == 'admin'
-        if course.teacher_id != session.get('id') and not is_admin:
-            flash('You do not have permission to edit this course')
-            return redirect(url_for('teacher_dashboard', id=session.get('id')))
+        
         
         course.content = request.form.get('content', '')
         
@@ -1264,10 +1221,10 @@ def update_course_materials(course_id):
         
         # 1. Handle YouTube Link
         youtube_link = request.form.get('youtube_link', '').strip()
+        youtube_title = request.form.get('youtube_title', '').strip() or 'Video Lecture (YouTube)'
         if youtube_link:
-            # Simple YouTube URL to embed conversion if needed, but for now just store link
             materials_list.append({
-                'name': 'Video Lecture (YouTube)',
+                'name': youtube_title,
                 'path': youtube_link,
                 'type': 'youtube'
             })

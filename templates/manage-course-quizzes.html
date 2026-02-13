@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Quizzes - {{ course.title }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f8fafc;
+            margin: 0;
+            padding: 40px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .btn {
+            background: #6366f1;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-green {
+            background: #10b981;
+        }
+
+        .btn-red {
+            background: #ef4444;
+        }
+
+        .btn-yellow {
+            background: #f59e0b;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid #e2e8f0;
+            color: #64748b;
+        }
+
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .quiz-info h3 {
+            margin: 0 0 5px 0;
+            color: #1e293b;
+        }
+
+        .quiz-meta {
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 700px;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .close {
+            position: absolute;
+            right: 25px;
+            top: 20px;
+            font-size: 28px;
+            font-weight: bold;
+            color: #aaa;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: #000;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+
+        input,
+        textarea,
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .question-list {
+            margin-top: 20px;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 20px;
+        }
+
+        .question-item {
+            background: #f1f5f9;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="header">
+            <div>
+                <a href="/teacher/{{ session.get('id') }}"
+                    style="color: #64748b; text-decoration: none; display: flex; align-items: center; gap: 5px; margin-bottom: 10px;">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+                <h1 style="margin: 0;">{{ course.title }} - Quizzes</h1>
+            </div>
+            <button class="btn" onclick="openModal('createQuizModal')">
+                <i class="fas fa-plus"></i> Create New Quiz
+            </button>
+        </div>
+
+        {% if quizzes %}
+        {% for quiz in quizzes %}
+        <div class="card">
+            <div class="quiz-info">
+                <h3>{{ quiz.title }}</h3>
+                <div class="quiz-meta">
+                    <i class="far fa-clock"></i> {{ quiz.duration_minutes or 'No limit' }} mins |
+                    <i class="fas fa-bullseye"></i> Pass: {{ quiz.passing_score }}% |
+                    {{ quiz.questions|length }} Questions
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <a href="/quiz/{{ quiz.id }}/attempts" class="btn btn-green">
+                    <i class="fas fa-chart-line"></i> Results
+                </a>
+                <button class="btn btn-yellow" onclick="openModal('manageQuizModal{{ quiz.id }}')">
+                    <i class="fas fa-edit"></i> Questions
+                </button>
+                <form action="/quiz/delete/{{ quiz.id }}" method="POST" onsubmit="return confirm('Delete this quiz?');">
+                    <button class="btn btn-red" type="submit"><i class="fas fa-trash"></i></button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Manage Quiz Modal -->
+        <div id="manageQuizModal{{ quiz.id }}" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="closeModal('manageQuizModal{{ quiz.id }}')">&times;</span>
+                <h2>Manage Questions: {{ quiz.title }}</h2>
+
+                <div style="background: #f8fafc; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+                    <h3>Add New Question</h3>
+                    <form action="/quiz/{{ quiz.id }}/question/add" method="POST" onsubmit="syncCorrectAnswer(this)">
+                        <!-- Hidden input to store redirect destination -->
+                        <input type="hidden" name="redirect_to" value="manage_course_quizzes">
+
+                        <div class="form-group">
+                            <label>Question Text</label>
+                            <textarea name="question_text" required rows="2"
+                                placeholder="Enter question here..."></textarea>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div class="form-group">
+                                <label>Option A</label>
+                                <input type="text" name="options[]" required class="option-input" data-option="A">
+                            </div>
+                            <div class="form-group">
+                                <label>Option B</label>
+                                <input type="text" name="options[]" required class="option-input" data-option="B">
+                            </div>
+                            <div class="form-group">
+                                <label>Option C</label>
+                                <input type="text" name="options[]" class="option-input" data-option="C">
+                            </div>
+                            <div class="form-group">
+                                <label>Option D</label>
+                                <input type="text" name="options[]" class="option-input" data-option="D">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Correct Answer</label>
+                            <select name="correct_answer_select" required onchange="updateCorrectAnswer(this)">
+                                <option value="" disabled selected>Select Correct Option</option>
+                                <option value="A">Option A</option>
+                                <option value="B">Option B</option>
+                                <option value="C">Option C</option>
+                                <option value="D">Option D</option>
+                            </select>
+                            <!-- Hidden input that actually gets sent to backend with the text value -->
+                            <input type="hidden" name="correct_answer">
+                        </div>
+
+                        <button type="submit" class="btn btn-green" style="width: 100%;">Add Question</button>
+                    </form>
+                </div>
+
+                <div class="question-list">
+                    <h3>Existing Questions ({{ quiz.questions|length }})</h3>
+                    {% for q in quiz.questions %}
+                    <div class="question-item">
+                        <strong>{{ loop.index }}. {{ q.question_text }}</strong>
+                        <div style="font-size: 0.85rem; color: #10b981; margin-top: 5px;">
+                            Correct: {{ q.correct_answer }}
+                        </div>
+                    </div>
+                    {% else %}
+                    <p style="color: #64748b;">No questions added yet.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div style="text-align: center; padding: 40px; color: #64748b;">
+            <p>No quizzes created for this course yet.</p>
+        </div>
+        {% endif %}
+
+        <!-- Create Quiz Modal -->
+        <div id="createQuizModal" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="closeModal('createQuizModal')">&times;</span>
+                <h2>Create New Quiz</h2>
+                <form action="/course/{{ course.id }}/quiz/create" method="POST">
+                    <input type="hidden" name="redirect_to" value="manage_course_quizzes">
+                    <div class="form-group">
+                        <label>Quiz Title</label>
+                        <input type="text" name="title" required placeholder="e.g., Chapter 1 Quiz">
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea name="description" rows="3"></textarea>
+                    </div>
+                    <div style="display: flex; gap: 20px;">
+                        <div class="form-group" style="flex: 1;">
+                            <label>Duration (Minutes)</label>
+                            <input type="number" name="duration_minutes">
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label>Passing Score (%)</label>
+                            <input type="number" name="passing_score" value="60" min="0" max="100">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn" style="width: 100%;">Create Quiz</button>
+                </form>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        function openModal(modalId) {
+            document.getElementById(modalId).style.display = "flex";
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = "none";
+        }
+
+        window.onclick = function (event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = "none";
+            }
+        }
+
+        function updateCorrectAnswer(selectElement) {
+            const form = selectElement.closest('form');
+            const selectedOption = selectElement.value; // A, B, C, D
+            const optionInput = form.querySelector(`.option-input[data-option="${selectedOption}"]`);
+            const hiddenInput = form.querySelector('input[name="correct_answer"]');
+
+            if (optionInput && hiddenInput) {
+                hiddenInput.value = optionInput.value;
+            }
+        }
+
+        // Also sync before submit in case user typed in option box after selecting dropdown
+        function syncCorrectAnswer(form) {
+            const select = form.querySelector('select[name="correct_answer_select"]');
+            const hiddenInput = form.querySelector('input[name="correct_answer"]');
+            const selectedOption = select.value;
+            const optionInput = form.querySelector(`.option-input[data-option="${selectedOption}"]`);
+
+            if (optionInput) {
+                hiddenInput.value = optionInput.value;
+            }
+            return true;
+        }
+
+        // Auto-open modal if URL hash exists (optional polish)
+        document.addEventListener("DOMContentLoaded", function () {
+            if (window.location.hash) {
+                const modalId = window.location.hash.substring(1);
+                if (document.getElementById(modalId)) {
+                    openModal(modalId);
+                }
+            }
+
+            // Add event listeners to option inputs to update hidden field if they change while selected
+            document.querySelectorAll('.option-input').forEach(input => {
+                input.addEventListener('input', function () {
+                    const form = this.closest('form');
+                    const select = form.querySelector('select[name="correct_answer_select"]');
+                    const hiddenInput = form.querySelector('input[name="correct_answer"]');
+
+                    if (select.value === this.getAttribute('data-option')) {
+                        hiddenInput.value = this.value;
+                    }
+                });
+            });
+        });
+    </script>
+
+</body>
+
+</html>

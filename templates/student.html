@@ -292,6 +292,53 @@
         padding: 1rem;
       }
     }
+
+    .search-container {
+      margin-bottom: 2rem;
+      position: relative;
+    }
+
+    .search-input-wrapper {
+      position: relative;
+      max-width: 500px;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 12px 16px 12px 45px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: white;
+      font-size: 1rem;
+      transition: all 0.2s;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 1.1rem;
+    }
+
+    .no-results {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 3rem;
+      background: white;
+      border-radius: 12px;
+      border: 1px dashed var(--border);
+      color: var(--text-muted);
+      display: none;
+    }
   </style>
 
   <div class="sidebar">
@@ -358,8 +405,16 @@
         {% endfor %}
       </div>
 
+      <div class="search-container">
+        <div class="search-input-wrapper">
+          <i class="fas fa-search search-icon"></i>
+          <input type="text" id="courseSearch" class="search-input"
+            placeholder="Search for courses by title or description...">
+        </div>
+      </div>
+
       <h2 style="margin-bottom:1rem">Browse Catalog</h2>
-      <div class="grid">
+      <div class="grid" id="courseGrid">
         {% for course in all_courses %}
         <div class="card">
           <div style="display: flex; justify-content: space-between; align-items: flex-start;">
@@ -391,27 +446,58 @@
           {% endif %}
         </div>
         {% endfor %}
+        <!-- No Search Results Message -->
+        <div id="noResults" class="no-results"
+          style="grid-column: 1/-1; text-align: center; padding: 3rem; background: white; border-radius: 12px; border: 1px dashed var(--border); color: var(--text-muted); display: none;">
+          <i class="fas fa-search-minus"
+            style="font-size: 3rem; margin-bottom: 1rem; display: block; opacity: 0.5;"></i>
+          <h3 style="margin: 0; color: var(--text-main);">No courses found</h3>
+          <p style="margin: 5px 0 0; color: var(--text-muted);">Try searching with different keywords.</p>
+        </div>
       </div>
-
     </div>
-  </div>
-  <script>
-    function toggleMenu() {
-      const sidebar = document.getElementById('sidebar');
-      sidebar.classList.toggle('active');
-    }
-
-    // Close menu when clicking on a nav item
-    document.querySelectorAll('.nav-item').forEach(item => {
-      item.addEventListener('click', () => {
+    <script>
+      function toggleMenu() {
         const sidebar = document.getElementById('sidebar');
-        if (window.innerWidth <= 768) {
-          sidebar.classList.remove('active');
+        sidebar.classList.toggle('active');
+      }
+
+      // Close menu when clicking on a nav item
+      document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', () => {
+          const sidebar = document.getElementById('sidebar');
+          if (window.innerWidth <= 768) {
+            sidebar.classList.remove('active');
+          }
+        });
+      });
+      // Course Search Logic
+      document.getElementById('courseSearch').addEventListener('keyup', function (e) {
+        const searchTerm = e.target.value.toLowerCase();
+        const courseCards = document.querySelectorAll('#courseGrid .card');
+        const noResults = document.getElementById('noResults');
+        let found = 0;
+
+        courseCards.forEach(card => {
+          const title = card.querySelector('b').textContent.toLowerCase();
+          const description = card.querySelector('p').textContent.toLowerCase();
+
+          if (title.includes(searchTerm) || description.includes(searchTerm)) {
+            card.style.display = 'flex';
+            found++;
+          } else {
+            card.style.display = 'none';
+          }
+        });
+
+        if (found === 0 && searchTerm.length > 0) {
+          noResults.style.display = 'block';
+        } else {
+          noResults.style.display = 'none';
         }
       });
-    });
-  </script>
+    </script>
 
-  </body>
+    </body>
 
 </html>

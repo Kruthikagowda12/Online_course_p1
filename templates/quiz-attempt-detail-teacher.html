@@ -173,6 +173,28 @@
         .text-danger {
             color: var(--danger);
         }
+
+        .btn {
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-green {
+            background-color: #10b981;
+            color: white;
+        }
+
+        .btn-yellow {
+            background-color: #f59e0b;
+            color: white;
+        }
     </style>
 </head>
 
@@ -180,10 +202,17 @@
 
     <div class="container">
         <div class="header">
-            <a href="/quiz/{{ quiz.id }}/attempts" class="back-link">
-                <i class="fas fa-arrow-left"></i> Back to All Attempts
+            <a href="/teacher/{{ session.get('id') }}/quiz-tracker" class="back-link">
+                <i class="fas fa-arrow-left"></i> Back to Quiz Tracker
             </a>
-            <div style="font-weight: 700; color: var(--primary);">REVIEW MODE</div>
+            <div style="display: flex; gap: 10px;">
+                <a href="/teacher/{{ session.get('id') }}/quiz-tracker" class="btn btn-green">
+                    <i class="fas fa-chart-line"></i> Results
+                </a>
+                <button class="btn btn-yellow" onclick="openModal('manageQuizModal{{ quiz.id }}')">
+                    <i class="fas fa-edit"></i> Questions
+                </button>
+            </div>
         </div>
 
         <div class="card">

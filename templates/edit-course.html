@@ -109,7 +109,7 @@
       font-family: 'Inter', system-ui, -apple-system, sans-serif;
       font-size: 1rem;
       resize: vertical;
-      min-height: 300px;
+      min-height: 120px;
       box-sizing: border-box;
     }
 
@@ -255,14 +255,8 @@
       <form method="POST" action="/course/{{ course.id }}/update-materials" enctype="multipart/form-data">
         <div class="form-group">
           <label for="content">Course Content & Materials</label>
-          <textarea id="content" name="content"
-            placeholder="Add lectures, notes, PDFs, video links, assignments, resources, etc. You can use HTML or plain text. Use <h2> tags for sections, <p> for paragraphs, and <a href='link'> for resource links.">{{ course.content or '' }}</textarea>
-          <p class="help-text">
-            💡 Tip: You can format your content with HTML. Example:
-            <br>&lt;h2&gt;Lecture 1: Introduction&lt;/h2&gt;
-            <br>&lt;p&gt;Content here...&lt;/p&gt;
-            <br>&lt;a href="https://example.com/pdf"&gt;Download PDF&lt;/a&gt;
-          </p>
+          <textarea id="content" name="content" rows="3"
+            placeholder="Enter course description, lectures, and notes here...">{{ course.content or '' }}</textarea>
         </div>
 
         <div class="form-group">
@@ -276,11 +270,15 @@
         </div>
 
         <div class="form-group">
-          <label for="youtube_link"><i class="fab fa-youtube" style="color:#ff0000;"></i> Add YouTube Video Link</label>
-          <input type="url" id="youtube_link" name="youtube_link" placeholder="https://www.youtube.com/watch?v=..."
-            style="padding: 12px; border: 1px solid var(--border); border-radius: 8px; width: 100%; box-sizing: border-box;" />
+          <label><i class="fab fa-youtube" style="color:#ff0000;"></i> Add YouTube Video</label>
+          <div style="display: flex; gap: 10px; margin-bottom: 5px;">
+            <input type="text" name="youtube_title" placeholder="Video Title (e.g. Introduction)"
+              style="padding: 12px; border: 1px solid var(--border); border-radius: 8px; flex: 1; box-sizing: border-box;" />
+            <input type="url" name="youtube_link" placeholder="YouTube URL (https://...)"
+              style="padding: 12px; border: 1px solid var(--border); border-radius: 8px; flex: 2; box-sizing: border-box;" />
+          </div>
           <p class="help-text">
-            🔗 Paste a YouTube video URL to add it to the course materials.
+            🔗 Provide a title and paste a YouTube video URL.
           </p>
         </div>
 

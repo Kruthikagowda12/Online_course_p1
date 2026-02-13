@@ -322,12 +322,82 @@
     text-decoration: none;
     font-weight: 700;
   }
+
+  /* Modal Styles */
+  .modal {
+    display: none;
+    position: fixed;
+    z-index: 2000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-content {
+    background-color: white;
+    padding: 30px;
+    border-radius: 20px;
+    width: 90%;
+    max-width: 800px;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  }
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--border, #e2e8f0);
+  }
+
+  .close {
+    font-size: 24px;
+    font-weight: bold;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: 0.3s;
+  }
+
+  .close:hover {
+    color: var(--text-main);
+  }
+
+  .student-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .student-table th,
+  .student-table td {
+    text-align: left;
+    padding: 12px;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  .student-table th {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 700;
+  }
+
+  .student-table tr:last-child td {
+    border-bottom: none;
+  }
 </style>
 
 <div class="sidebar" id="sidebar">
   <h2>EduStream</h2>
   <a href="/teacher/{{ teacher_id }}" class="nav-item active"><i class="fas fa-th-large"></i> Dashboard</a>
-  <a href="/teacher/{{ teacher_id }}/students" class="nav-item"><i class="fas fa-users"></i> Students</a>
+  <a href="javascript:void(0)" onclick="openStudentsModal()" class="nav-item"><i class="fas fa-users"></i> Students</a>
   <a href="/teacher/{{ teacher_id }}/quiz-tracker" class="nav-item"><i class="fas fa-chart-bar"></i> Quiz Tracker</a>
   <a href="/logout" class="btn-logout-top">Logout</a>
   <!-- <a href="#" class="nav-item"><i class="fas fa-cog"></i> Settings</a> -->
@@ -346,9 +416,7 @@
       <h1 style="margin:0;">Instructor Panel</h1>
       <p style="color:var(--text-muted)">Welcome back, {{ session.get('name') }}</p>
     </div>
-    <button class="btn-create" onclick="document.getElementById('create-area').scrollIntoView({behavior: 'smooth'})">
-      + Create New Course
-    </button>
+
   </div>
 
   <div class="stats-grid">
@@ -393,7 +461,7 @@
           style="background: var(--primary); color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; text-decoration: none; text-align: center; font-weight: 600; font-size: 0.85rem;">
           <i class="fas fa-edit"></i> Edit Content & Materials
         </a>
-        <a href="/course/{{ item.course.id }}/quiz/create"
+        <a href="/course/{{ item.course.id }}/manage-quizzes"
           style="background: #fbbf24; color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; text-decoration: none; text-align: center; font-weight: 600; font-size: 0.85rem;">
           <i class="fas fa-question-circle"></i> Add/Manage Quizzes
         </a>
@@ -405,7 +473,71 @@
 
 </div>
 
+<!-- Students Modal -->
+<div id="studentsModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 style="margin:0;">Enrolled Students</h2>
+      <span class="close" onclick="closeStudentsModal()">&times;</span>
+    </div>
+
+    <div style="overflow-x: auto;">
+      <table class="student-table">
+        <thead>
+          <tr>
+            <th>Student Name</th>
+            <th>Email</th>
+            <th>Enrolled Course</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% set students_found = false %}
+          {% for item in course_data %}
+          {% for student in item.students %}
+          {% set students_found = true %}
+          <tr>
+            <td>
+              <div style="font-weight: 600;">{{ student.name }}</div>
+            </td>
+            <td>{{ student.email }}</td>
+            <td>
+              <span style="color: var(--primary); font-size: 0.85rem; font-weight: 600;">
+                <i class="fas fa-book"></i> {{ item.course.title }}
+              </span>
+            </td>
+          </tr>
+          {% endfor %}
+          {% endfor %}
+
+          {% if not students_found %}
+          <tr>
+            <td colspan="3" style="text-align: center; padding: 40px; color: var(--text-muted);">
+              No students enrolled in your courses yet.
+            </td>
+          </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 <script>
+  function openStudentsModal() {
+    document.getElementById('studentsModal').style.display = 'flex';
+  }
+
+  function closeStudentsModal() {
+    document.getElementById('studentsModal').style.display = 'none';
+  }
+
+  window.onclick = function (event) {
+    const modal = document.getElementById('studentsModal');
+    if (event.target == modal) {
+      modal.style.display = "none";
+    }
+  }
+
   function toggleMenu() {
     const sidebar = document.getElementById('sidebar');
     sidebar.classList.toggle('active');
