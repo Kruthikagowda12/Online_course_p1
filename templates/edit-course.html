@@ -390,8 +390,7 @@
           // 1. Get Signature from our backend
           const params = {
             timestamp: Math.round(new Date().getTime() / 1000),
-            folder: `course_materials/{{ course.id }}`,
-            resource_type: 'auto'
+            folder: `course_materials/{{ course.id }}`
           };
 
           const sigResponse = await fetch('/api/cloudinary-signature', {
@@ -412,7 +411,7 @@
           formData.append('folder', params.folder);
 
           const xhr = new XMLHttpRequest();
-          xhr.open('POST', `https://api.cloudinary.com/v1_1/${sigData.cloud_name}/upload`, true);
+          xhr.open('POST', `https://api.cloudinary.com/v1_1/${sigData.cloud_name}/auto/upload`, true);
 
           // Track progress
           xhr.upload.onprogress = (e) => {

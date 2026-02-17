@@ -183,6 +183,8 @@
               style="color:#ff0000; margin-right:5px;"></i> {{ material.name }}</strong>
         </div>
         {% else %}
+        {% set is_video = material.path.lower().endswith('.mp4') or material.path.lower().endswith('.mov') or
+        material.path.lower().endswith('.avi') or material.path.lower().endswith('.mkv') %}
         <a href="{{ material.path | sanitize_url }}" target="_blank" style="
               display: flex;
               align-items: center;
@@ -195,10 +197,16 @@
               border: 1px solid var(--border);
               transition: all 0.2s;
             " onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">
+          {% if is_video %}
+          <i class="fas fa-video" style="color: #ef4444; font-size: 1.5rem;"></i>
+          {% else %}
           <i class="fas fa-file-pdf" style="color: var(--primary); font-size: 1.5rem;"></i>
+          {% endif %}
           <div>
             <strong style="display: block; font-size: 0.95rem;">{{ material.name }}</strong>
-            <small style="color: var(--text-muted);">Click to view</small>
+            <small style="color: var(--text-muted);">
+              {% if is_video %}Click to Play Video{% else %}Click to View File{% endif %}
+            </small>
           </div>
         </a>
         {% endif %}
