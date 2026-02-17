@@ -58,7 +58,7 @@ def health_check():
             "vercel": is_vercel,
             "db_configured": bool(os.getenv('DATABASE_URL')),
             "cloudinary_configured": bool(os.getenv('CLOUDINARY_CLOUD_NAME')),
-            "razorpay_configured": bool(os.getenv('RAZORPAY_KEY_ID')),
+            # "razorpay_configured": bool(os.getenv('RAZORPAY_KEY_ID')),
             "smtp_configured": bool(os.getenv('SMTP_SERVER'))
         },
         "db_connection": db_status
@@ -1181,6 +1181,31 @@ def admin_delete_course(course_id):
         flash(f'Course "{title}" deleted successfully!')
 
     return redirect(url_for('admin_dashboard'))
+
+@app.route('/api/cloudinary-signature', methods=['POST'])
+@role_required('teacher', 'admin')
+def get_cloudinary_signature():
+    """Generate a signed signature for client-side Cloudinary uploads"""
+    try:
+        data = request.json
+        params_to_sign = data.get('params', {})
+        
+        # Add timestamp if not provided
+        if 'timestamp' not in params_to_sign:
+            import time
+            params_to_sign['timestamp'] = int(time.time())
+            
+        api_secret = os.getenv('CLOUDINARY_API_SECRET')
+        signature = cloudinary.utils.api_sign_request(params_to_sign, api_secret)
+        
+        return jsonify({
+            'signature': signature,
+            'timestamp': params_to_sign['timestamp'],
+            'api_key': os.getenv('CLOUDINARY_API_KEY'),
+            'cloud_name': os.getenv('CLOUDINARY_CLOUD_NAME')
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/course/<int:course_id>/edit', methods=['GET'])
 @role_required('teacher')
