@@ -183,7 +183,10 @@
               style="color:#ff0000; margin-right:5px;"></i> {{ material.name }}</strong>
         </div>
         {% else %}
-        <a href="{{ material.path | sanitize_url }}" target="_blank" style="
+        {% set sanitized_path = material.path | sanitize_url %}
+        {% set is_pdf = sanitized_path.lower().endswith('.pdf') %}
+        <a href="{% if is_pdf %}https://docs.google.com/viewer?url={{ sanitized_path | urlencode }}&embedded=true{% else %}{{ sanitized_path }}{% endif %}"
+          target="_blank" style="
               display: flex;
               align-items: center;
               gap: 12px;
@@ -195,10 +198,13 @@
               border: 1px solid var(--border);
               transition: all 0.2s;
             " onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">
-          <i class="fas fa-file-pdf" style="color: var(--primary); font-size: 1.5rem;"></i>
+          <i class="fas {% if is_pdf %}fa-file-pdf{% else %}fa-file{% endif %}"
+            style="color: var(--primary); font-size: 1.5rem;"></i>
           <div>
             <strong style="display: block; font-size: 0.95rem;">{{ material.name }}</strong>
-            <small style="color: var(--text-muted);">Click to View Material</small>
+            <small style="color: var(--text-muted);">
+              {% if is_pdf %}Click to Read PDF{% else %}Click to View Material{% endif %}
+            </small>
           </div>
         </a>
         {% endif %}
