@@ -184,7 +184,7 @@
         </div>
         {% else %}
         {% set sanitized_path = material.path | sanitize_url %}
-        {% set is_pdf = sanitized_path.lower().endswith('.pdf') %}
+        {% set is_pdf = sanitized_path.lower().endswith('.pdf') or '/raw/upload/' in sanitized_path %}
         <a href="{% if is_pdf %}https://docs.google.com/viewer?url={{ sanitized_path | urlencode }}&embedded=true{% else %}{{ sanitized_path }}{% endif %}"
           target="_blank" style="
               display: flex;

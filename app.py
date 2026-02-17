@@ -95,6 +95,12 @@ def from_json(value):
 def sanitize_url(value):
     return value.replace('\\', '/') if value else value
 
+@app.template_filter('urlencode')
+def urlencode_filter(s):
+    if s is None:
+        return ""
+    from urllib.parse import quote_plus
+    return quote_plus(s)
 
 db = SQLAlchemy(app)
 
@@ -1240,15 +1246,11 @@ def update_course_materials(course_id):
             for file in files:
                 if file and file.filename and allowed_file(file.filename):
                     try:
-                        # Determine correct resource_type for Cloudinary
-                        ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
-                        is_video = ext in ['mp4', 'avi', 'mov', 'mkv']
-                        
-                        # Upload to Cloudinary
+                        # Upload to Cloudinary using 'auto' for better delivery
                         result = cloudinary.uploader.upload(
                             file,
                             folder=f"course_materials/{course_id}",
-                            resource_type="video" if is_video else "raw",
+                            resource_type="auto",
                             use_filename=True,
                             unique_filename=True
                         )
