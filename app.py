@@ -75,7 +75,7 @@ stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
 stripe_publishable_key = os.getenv('STRIPE_PUBLISHABLE_KEY')
 
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads')
-ALLOWED_EXTENSIONS = {'pdf', 'mp4', 'avi', 'mov', 'mkv', 'txt', 'doc', 'docx', 'ppt', 'pptx', 'zip'}
+ALLOWED_EXTENSIONS = {'pdf', 'mp4', 'avi', 'mov', 'mkv', 'txt', 'doc', 'docx', 'ppt', 'pptx', 'zip', 'rar', 'jpg', 'jpeg', 'png', 'gif', 'mp3', 'wav'}
 try:
     if not os.path.exists(UPLOAD_FOLDER):
         os.makedirs(UPLOAD_FOLDER)
@@ -197,7 +197,11 @@ def role_required(*allowed_roles):
             if user_role == 'admin':
                 return f(*args, **kwargs)
             if allowed_roles and user_role not in allowed_roles:
-                flash('You do not have permission to access this page')
+                # Redirect to appropriate dashboard instead of home
+                if user_role == 'student':
+                    return redirect(f'/student/{session.get("id")}')
+                elif user_role == 'teacher':
+                    return redirect(url_for('teacher_dashboard', id=session.get('id')))
                 return redirect(url_for('home'))
             return f(*args, **kwargs)
         return wrapped
@@ -1236,11 +1240,17 @@ def update_course_materials(course_id):
             for file in files:
                 if file and file.filename and allowed_file(file.filename):
                     try:
+                        # Determine correct resource_type for Cloudinary
+                        ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+                        is_video = ext in ['mp4', 'avi', 'mov', 'mkv']
+                        
                         # Upload to Cloudinary
                         result = cloudinary.uploader.upload(
                             file,
                             folder=f"course_materials/{course_id}",
-                            resource_type="auto"
+                            resource_type="video" if is_video else "raw",
+                            use_filename=True,
+                            unique_filename=True
                         )
                         
                         # Sanitize URL to remove any backslashes
@@ -1253,6 +1263,9 @@ def update_course_materials(course_id):
                             'cloudinary_id': result['public_id']
                         })
                     except Exception as upload_error:
+                        import traceback
+                        print(f"UPLOAD ERROR for {file.filename}:")
+                        print(traceback.format_exc())
                         flash(f'Error uploading {file.filename}: {str(upload_error)}', 'danger')
         
         course.materials = json.dumps(materials_list)
